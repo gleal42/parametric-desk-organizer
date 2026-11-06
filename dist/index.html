@@ -1,0 +1,1301 @@
+<title>Ribbed Desk Organizer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Familjen+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: full-bleed 3D stage beside a slim instrument panel (right sidebar on desktop, bottom sheet on phones). */
+:root {
+  --stage: #E6EAE4;      /* studio backdrop, faint sage */
+  --stage-hi: #F3F5F1;
+  --stage-lo: #D5DBD3;
+  --panel: #F6F7F4;
+  --ink: #1B2420;
+  --muted: #5E6A64;
+  --line: #CDD5CE;
+  --accent: #2C6A56;     /* moss: active controls, plate outline */
+  --accent-soft: #DDE9E3;
+  --accent-ink: #FFFFFF;
+  --chip: rgba(246, 247, 244, 0.88);
+  --ok: #2F7A4E;
+  --warn: #B4581A;
+  --shadow-alpha: 0.2;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --stage: #151A18; --stage-hi: #1E2522; --stage-lo: #0D110F;
+    --panel: #19201D; --ink: #E4EAE6; --muted: #98A39D; --line: #2D3632;
+    --accent: #7BC6AC; --accent-soft: #23342D; --accent-ink: #0E1613;
+    --chip: rgba(25, 32, 29, 0.86); --ok: #6FCB95; --warn: #E8A063; --shadow-alpha: 0.5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --stage: #151A18; --stage-hi: #1E2522; --stage-lo: #0D110F;
+  --panel: #19201D; --ink: #E4EAE6; --muted: #98A39D; --line: #2D3632;
+  --accent: #7BC6AC; --accent-soft: #23342D; --accent-ink: #0E1613;
+  --chip: rgba(25, 32, 29, 0.86); --ok: #6FCB95; --warn: #E8A063; --shadow-alpha: 0.5;
+  color-scheme: dark;
+}
+
+html { height: 100%; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--stage); color: var(--ink);
+  font: 400 14px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.55; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 348px; }
+
+/* ---------- stage ---------- */
+.stage {
+  position: relative; min-width: 0; min-height: 0; overflow: hidden;
+  background: radial-gradient(120% 95% at 50% 36%, var(--stage-hi) 0%, var(--stage) 52%, var(--stage-lo) 100%);
+}
+#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+.hud {
+  position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); right: 120px;
+  pointer-events: none; display: grid; gap: 4px; justify-items: start;
+}
+.hud h1 { margin: 0; font: 700 23px/1.05 var(--font-display); letter-spacing: -0.015em; text-wrap: balance; }
+.meta { font: 400 12px/1.3 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.fit {
+  margin-top: 4px; display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 10px 4px 8px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--chip); font: 500 12px/1.2 var(--font-ui); backdrop-filter: blur(6px);
+}
+.fit i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.fit.warn i { background: var(--warn); }
+
+.views {
+  position: absolute; top: 14px; right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; gap: 4px; padding: 3px; border-radius: 10px;
+  background: var(--chip); border: 1px solid var(--line); backdrop-filter: blur(6px);
+}
+.views button {
+  border: 0; background: transparent; border-radius: 7px; padding: 5px 10px;
+  font: 500 12px/1 var(--font-ui); color: var(--muted);
+}
+.views button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.hint {
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 12px; margin: 0;
+  font: 400 12px/1.3 var(--font-ui); color: var(--muted); pointer-events: none; transition: opacity .6s;
+}
+.hint.gone { opacity: 0; }
+.busy {
+  position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 12px; margin: 0;
+  font: 500 12px/1 var(--font-mono); color: var(--muted); opacity: 0; transition: opacity .2s;
+}
+.busy.on { opacity: 1; }
+
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.tag {
+  position: absolute; left: 0; top: 0; white-space: nowrap;
+  padding: 3px 8px 4px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--chip); color: var(--ink); font: 600 12px/1.2 var(--font-ui);
+  backdrop-filter: blur(6px); will-change: transform;
+}
+.tag::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 9px; background: var(--muted); }
+.tag.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tag.on::after { background: var(--accent); }
+.tag.plate { font: 500 11px/1.2 var(--font-mono); color: var(--accent); }
+.tag.plate.warn { color: var(--warn); }
+.tag.plate::after { display: none; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+
+/* ---------- panel ---------- */
+.panel { min-height: 0; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line); -webkit-overflow-scrolling: touch; }
+.panel-inner {
+  display: grid; gap: 20px;
+  padding-block: 16px 28px;
+  padding-left: max(18px, env(safe-area-inset-left, 0px));
+  padding-right: max(18px, env(safe-area-inset-right, 0px));
+}
+.sec { display: grid; gap: 10px; min-width: 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sec h2 { margin: 0; font: 600 11px/1.2 var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.sec-head span { font: 500 12.5px/1.2 var(--font-ui); color: var(--ink); }
+
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 3px; border-radius: 10px; border: 1px solid var(--line); }
+.tab {
+  border: 0; background: transparent; border-radius: 7px; padding: 7px 4px;
+  font: 600 12.5px/1.15 var(--font-ui); color: var(--muted); white-space: nowrap;
+}
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.tabpanel { display: grid; gap: 12px; }
+.tabpanel[hidden] { display: none; }
+.slider { display: grid; gap: 4px; }
+.slider label { display: flex; justify-content: space-between; gap: 10px; font: 500 13px/1.2 var(--font-ui); }
+.slider output { font: 400 12.5px/1.2 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); height: 22px; }
+.info {
+  margin: 0; padding: 9px 11px; border-radius: 8px; background: var(--stage);
+  font: 400 12.5px/1.45 var(--font-ui); color: var(--muted);
+}
+.info b { color: var(--ink); font: 500 12.5px/1.45 var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.export { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.btn {
+  border-radius: 9px; padding: 10px 14px; font: 600 13.5px/1.15 var(--font-ui);
+  border: 1px solid var(--line); background: transparent; white-space: nowrap;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.status { grid-column: 1 / -1; margin: 0; font: 400 12px/1.4 var(--font-ui); color: var(--muted); min-height: 1.4em; }
+.status.warn { color: var(--warn); }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch {
+  width: 30px; height: 30px; border-radius: 50%; padding: 0;
+  border: 1px solid var(--line); box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.12);
+}
+.swatch[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggle {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; font: 500 13px/1.2 var(--font-ui);
+}
+.toggle i { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--muted); display: grid; place-items: center; }
+.toggle[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.toggle[aria-pressed="true"] i { background: var(--accent); border-color: var(--accent); }
+.toggle[aria-pressed="true"] i::after {
+  content: ""; width: 6px; height: 3px; border-left: 1.6px solid var(--accent-ink); border-bottom: 1.6px solid var(--accent-ink);
+  transform: translateY(-1px) rotate(-45deg);
+}
+.code {
+  margin: 0; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--stage);
+  font: 400 12px/1.5 var(--font-mono); overflow-wrap: anywhere; user-select: all;
+}
+.foot { margin: 0; font: 400 12px/1.45 var(--font-ui); color: var(--muted); max-width: 60ch; }
+.more-btn { display: none; }
+.more { display: grid; gap: 20px; }
+
+/* ---------- phones: bottom sheet ---------- */
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); max-height: 56vh; max-height: 56dvh; }
+  .app.expanded .panel { max-height: 68vh; max-height: 68dvh; }
+  .panel-inner { gap: 14px; padding-block: 12px 16px; }
+  .hud { right: 112px; }
+  .hud h1 { font-size: 20px; }
+  .tabpanel { gap: 9px; }
+  .more-btn {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: transparent;
+    font: 600 13px/1.2 var(--font-ui);
+  }
+  .more-btn svg { width: 14px; height: 14px; transition: transform .2s; }
+  .more-btn svg path { fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .app.expanded .more-btn svg { transform: rotate(180deg); }
+  .more { display: none; }
+  .app.expanded .more { display: grid; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint, .busy, .more-btn svg { transition: none; }
+}
+</style>
+
+<div class="app" id="app">
+  <section class="stage" id="stage" aria-label="3D view of the organizer">
+    <canvas id="c" aria-label="Drag to rotate the organizer"></canvas>
+    <div class="labels" id="labels"></div>
+    <header class="hud">
+      <h1>Ribbed Desk Organizer</h1>
+      <div class="meta" id="meta">200 × 100 × 95 mm</div>
+      <div class="fit" id="fit"><i></i><span id="fitText">Checking the A1 mini plate…</span></div>
+    </header>
+    <div class="views" role="group" aria-label="Camera">
+      <button id="view3d" type="button" aria-pressed="true">3D</button>
+      <button id="viewTop" type="button" aria-pressed="false">Top</button>
+    </div>
+    <p class="hint" id="hint">Drag to rotate · pinch or scroll to zoom</p>
+    <p class="busy" id="busy">Rebuilding…</p>
+  </section>
+
+  <aside class="panel" id="panel" aria-label="Design controls">
+    <div class="panel-inner">
+      <section class="sec" aria-label="Sections">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" id="tab-pens" aria-controls="tp-pens" aria-selected="true" type="button">Pens</button>
+          <button class="tab" role="tab" id="tab-books" aria-controls="tp-books" aria-selected="false" type="button">Books</button>
+          <button class="tab" role="tab" id="tab-notes" aria-controls="tp-notes" aria-selected="false" type="button">Post-its</button>
+          <button class="tab" role="tab" id="tab-all" aria-controls="tp-all" aria-selected="false" type="button">Overall</button>
+        </div>
+        <div class="tabpanel" id="tp-pens" role="tabpanel" aria-labelledby="tab-pens">
+          <div class="slider"><label for="pensLen">Length <output id="o-pensLen"></output></label><input id="pensLen" type="range" min="25" max="100" step="1"></div>
+          <div class="slider"><label for="pensH">Height <output id="o-pensH"></output></label><input id="pensH" type="range" min="25" max="140" step="1"></div>
+          <div class="slider"><label for="pensDepth">Depth <output id="o-pensDepth"></output></label><input id="pensDepth" type="range" min="8" max="100" step="1"></div>
+          <p class="info" id="info-pens"></p>
+        </div>
+        <div class="tabpanel" id="tp-books" role="tabpanel" aria-labelledby="tab-books" hidden>
+          <div class="slider"><label for="booksW">Width <output id="o-booksW"></output></label><input id="booksW" type="range" min="16" max="80" step="1"></div>
+          <div class="slider"><label for="booksH">Height <output id="o-booksH"></output></label><input id="booksH" type="range" min="25" max="140" step="1"></div>
+          <div class="slider"><label for="booksDepth">Depth <output id="o-booksDepth"></output></label><input id="booksDepth" type="range" min="8" max="100" step="1"></div>
+          <p class="info" id="info-books"></p>
+        </div>
+        <div class="tabpanel" id="tp-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
+          <div class="slider"><label for="notesH">Height <output id="o-notesH"></output></label><input id="notesH" type="range" min="16" max="140" step="1"></div>
+          <div class="slider"><label for="notesDepth">Depth <output id="o-notesDepth"></output></label><input id="notesDepth" type="range" min="8" max="100" step="1"></div>
+          <p class="info" id="info-notes"></p>
+        </div>
+        <div class="tabpanel" id="tp-all" role="tabpanel" aria-labelledby="tab-all" hidden>
+          <div class="slider"><label for="L">Length <output id="o-L"></output></label><input id="L" type="range" min="150" max="220" step="5"></div>
+          <div class="slider"><label for="W">Width <output id="o-W"></output></label><input id="W" type="range" min="80" max="130" step="5"></div>
+          <div class="slider"><label for="pitch">Rib width <output id="o-pitch"></output></label><input id="pitch" type="range" min="3" max="8" step="0.5"></div>
+          <div class="slider"><label for="n">Shape <output id="o-n"></output></label><input id="n" type="range" min="2.2" max="6" step="0.1"></div>
+          <div class="slider"><label for="wall">Outer wall <output id="o-wall"></output></label><input id="wall" type="range" min="2" max="5" step="0.2"></div>
+          <p class="info" id="info-all"></p>
+        </div>
+      </section>
+
+      <section class="sec" aria-label="Export">
+        <div class="export">
+          <button class="btn primary" id="dlBtn" type="button">Download STL</button>
+          <button class="btn" id="copyBtn" type="button">Copy settings</button>
+          <p class="status" id="dlStatus" role="status">Exports exactly what you see, as a zip with the STL inside.</p>
+        </div>
+      </section>
+
+      <button class="more-btn" id="moreBtn" type="button" aria-expanded="false" aria-controls="more">
+        Colour, view options &amp; settings
+        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 5l4.5 4.5L11.5 5"/></svg>
+      </button>
+
+      <div class="more" id="more">
+        <section class="sec">
+          <div class="sec-head"><h2>Filament</h2><span id="colorName">Matcha</span></div>
+          <div class="swatches" id="swatches" role="group" aria-label="Filament colour"></div>
+        </section>
+        <section class="sec">
+          <div class="sec-head"><h2>Show</h2></div>
+          <div class="toggles">
+            <button class="toggle" id="tLabels" type="button" aria-pressed="true"><i></i>Labels</button>
+            <button class="toggle" id="tItems" type="button" aria-pressed="false"><i></i>Desk items</button>
+            <button class="toggle" id="tBed" type="button" aria-pressed="false"><i></i>A1 mini plate</button>
+          </div>
+        </section>
+        <section class="sec">
+          <div class="sec-head"><h2>Settings</h2></div>
+          <p class="code" id="code"></p>
+          <p class="foot">4.5 mm dividers, 2.4 mm floors, rounded rims and coves, a 0.6 mm chamfer at the base. Prints flat side down without supports.</p>
+        </section>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script>
+<script>
+/* Ribbed desk organizer v2: stepped, per-section heights, watertight mesh.
+   Shared by the 3D viewer page and the STL export so both always match.
+   Units: mm. Plan coordinates: u along the length (+u = pen end), v across
+   (+v = back, where the books go), h = height. Built Z-up (u, v, h) for STL.
+
+   Plan (from the sketch):        Side view (heights):
+     +---------+-------+            books  ███████
+     |  books  |       |            pens   ██████
+     +---------+  pens |            notes  ██
+     | post-its|       |
+     +---------+-------+                                                      */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.OrganizerGeom = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var DEFAULTS = {
+    L: 200, W: 100,
+    pitch: 5.0,        // rib width
+    n: 3.0,            // footprint: 2 = ellipse, higher = boxier
+    wall: 3.0,         // outer wall at the rib grooves
+    divider: 4.5,
+    floor: 2.4,        // thinnest floor
+    pensLen: 55, pensH: 90, pensDepth: 0,     // depth 0 = full depth
+    booksW: 36, booksH: 95, booksDepth: 0,
+    notesH: 30, notesDepth: 0,
+    cornerR: 6, rimR: 1.0, coveR: 3.0, chamfer: 0.6,
+    ledge: 1.4         // flat strip a lower section keeps at a taller neighbour's divider
+  };
+
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+  function num(x, d) { x = +x; return isFinite(x) ? x : d; }
+
+  function resolveParams(p) {
+    var P = {}, k;
+    for (k in DEFAULTS) P[k] = DEFAULTS[k];
+    for (k in (p || {})) if (p[k] !== undefined && p[k] !== null && k in DEFAULTS) P[k] = num(p[k], DEFAULTS[k]);
+    P.L = clamp(P.L, 140, 240); P.W = clamp(P.W, 70, 140); if (P.W > P.L) P.W = P.L;
+    P.pitch = clamp(P.pitch, 3, 9); P.n = clamp(P.n, 2.2, 6);
+    P.wall = clamp(P.wall, 2, 5); P.divider = clamp(P.divider, 2 * P.ledge + 0.6, 8);
+    P.ribDepth = 0.32 * P.pitch;
+    P.a = P.L / 2 - P.ribDepth; P.b = P.W / 2 - P.ribDepth;
+    P.ai = P.a - P.wall; P.bi = P.b - P.wall;
+    P.pensLen = clamp(P.pensLen, 25, 2 * P.ai - P.divider - 45);
+    P.booksW = clamp(P.booksW, 16, 2 * P.bi - P.divider - 16);
+    P.pensH = clamp(P.pensH, 25, 140); P.booksH = clamp(P.booksH, 25, 140); P.notesH = clamp(P.notesH, 16, 140);
+    ['pens', 'books', 'notes'].forEach(function (s) {
+      var H = P[s + 'H'], full = H - P.floor, d = P[s + 'Depth'];
+      P[s + 'Full'] = !(d > 0) || d >= full - 1e-9;
+      P[s + 'Depth'] = P[s + 'Full'] ? full : clamp(d, 8, full);
+      P[s + 'Floor'] = H - P[s + 'Depth'];
+    });
+    P.H = Math.max(P.pensH, P.booksH, P.notesH);
+    return P;
+  }
+
+  /* ---------- footprint curve (superellipse) ---------- */
+  function makeBase(a, b, n) {
+    var N = 8192, xs = new Float64Array(N), ys = new Float64Array(N), i;
+    for (i = 0; i < N; i++) {
+      var t = i / N * Math.PI * 2, c = Math.cos(t), s = Math.sin(t);
+      var r = Math.pow(Math.pow(Math.abs(c) / a, n) + Math.pow(Math.abs(s) / b, n), -1 / n);
+      xs[i] = r * c; ys[i] = r * s;
+    }
+    var cum = new Float64Array(N + 1);
+    for (i = 0; i < N; i++) { var j = (i + 1) % N; cum[i + 1] = cum[i] + Math.hypot(xs[j] - xs[i], ys[j] - ys[i]); }
+    return { xs: xs, ys: ys, cum: cum, N: N, total: cum[N] };
+  }
+  function baseAt(B, s) {
+    s = ((s % B.total) + B.total) % B.total;
+    var lo = 0, hi = B.N;
+    while (hi - lo > 1) { var m = (lo + hi) >> 1; if (B.cum[m] <= s) lo = m; else hi = m; }
+    var seg = B.cum[lo + 1] - B.cum[lo], f = seg > 0 ? (s - B.cum[lo]) / seg : 0, j = (lo + 1) % B.N;
+    return [B.xs[lo] + (B.xs[j] - B.xs[lo]) * f, B.ys[lo] + (B.ys[j] - B.ys[lo]) * f];
+  }
+  function baseNormal(a, b, n, x, y) {
+    var gx = Math.sign(x) * Math.pow(Math.abs(x) / a, n - 1) / a, gy = Math.sign(y) * Math.pow(Math.abs(y) / b, n - 1) / b;
+    var l = Math.hypot(gx, gy) || 1;
+    return [gx / l, gy / l];
+  }
+  function baseSDF(a, b, n) {        // approximate signed distance (exact for circles)
+    var minab = Math.min(a, b);
+    return function (x, y) {
+      var ax = Math.abs(x) / a, ay = Math.abs(y) / b, S = Math.pow(ax, n) + Math.pow(ay, n);
+      if (S < 1e-12) return -minab;
+      var G = Math.pow(S, 1 / n), k = Math.pow(G, 1 - n);
+      return (G - 1) / Math.hypot(k * Math.pow(ax, n - 1) / a, k * Math.pow(ay, n - 1) / b);
+    };
+  }
+  function outerProfile(P) {
+    var B = makeBase(P.a, P.b, P.n), Nr = Math.max(8, Math.round(B.total / P.pitch));
+    if (Nr % 2) Nr++;
+    var pitch = B.total / Nr, A = P.ribDepth, segs = 12, g = 0.06, prof = [], i, j, pts = [];
+    for (j = 0; j <= segs; j++) { var be = Math.PI * (1 - j / segs); prof.push([0.5 + (0.5 - g) * Math.cos(be), Math.sin(be)]); }
+    for (i = 0; i < Nr; i++) for (j = 0; j < prof.length; j++) {
+      var q = baseAt(B, (i + prof[j][0]) * pitch), nn = baseNormal(P.a, P.b, P.n, q[0], q[1]), off = A * Math.max(0, prof[j][1]);
+      pts.push([q[0] + nn[0] * off, q[1] + nn[1] * off]);
+    }
+    return { pts: pts, ribs: Nr, pitch: pitch };
+  }
+
+  /* ---------- pockets ---------- */
+  function C(ax, op, val) { return { ax: ax, sign: op === '<' ? 1 : -1, val: val }; }
+  function pocketSDF(bd, wall, cons, r) {
+    return function (u, v) {
+      var e = bd(u, v) + wall + r, mx = e, ss = e > 0 ? e * e : 0;
+      for (var i = 0; i < cons.length; i++) {
+        var c = cons[i], ei = c.sign * ((c.ax === 'u' ? u : v) - c.val) + r;
+        if (ei > mx) mx = ei;
+        if (ei > 0) ss += ei * ei;
+      }
+      return Math.sqrt(ss) + Math.min(mx, 0) - r;
+    };
+  }
+  function rayHit(sdf, cx, cy, ux, uy, target) {
+    var lo = 0, hi = 400;
+    for (var it = 0; it < 30; it++) { var mid = 0.5 * (lo + hi); if (sdf(cx + ux * mid, cy + uy * mid) < target) lo = mid; else hi = mid; }
+    var t = 0.5 * (lo + hi);
+    return [cx + ux * t, cy + uy * t];
+  }
+  function pocketRing(pk, delta) {
+    var r = [], cx = pk.center[0], cy = pk.center[1];
+    for (var j = 0; j < pk.thetas.length; j++) r.push(rayHit(pk.sdf, cx, cy, Math.cos(pk.thetas[j]), Math.sin(pk.thetas[j]), delta));
+    return r;
+  }
+  function preparePocket(P, spec, bd) {
+    var sdf = pocketSDF(bd, P.wall, spec.cons, P.cornerR), u0 = -P.a, u1 = P.a, v0 = -P.b, v1 = P.b, i, j;
+    spec.cons.forEach(function (c) {
+      if (c.ax === 'u') { if (c.sign > 0) u1 = Math.min(u1, c.val); else u0 = Math.max(u0, c.val); }
+      else { if (c.sign > 0) v1 = Math.min(v1, c.val); else v0 = Math.max(v0, c.val); }
+    });
+    var best = Infinity, cx = 0, cy = 0, NX = 60, NY = 36;
+    for (i = 0; i < NX; i++) for (j = 0; j < NY; j++) {
+      var uu = u0 + (u1 - u0) * (i + 0.5) / NX, vv = v0 + (v1 - v0) * (j + 0.5) / NY, d = sdf(uu, vv);
+      if (d < best) { best = d; cx = uu; cy = vv; }
+    }
+    var step = Math.max((u1 - u0) / NX, (v1 - v0) / NY);
+    for (var it = 0; it < 60 && step > 1e-3; it++) {
+      var moved = false;
+      for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) {
+        if (!dx && !dy) continue;
+        var dd = sdf(cx + dx * step, cy + dy * step);
+        if (dd < best - 1e-9) { best = dd; cx += dx * step; cy += dy * step; moved = true; }
+      }
+      if (!moved) step *= 0.5;
+    }
+    var K = 1440, pts = [];
+    for (i = 0; i < K; i++) { var th = i / K * Math.PI * 2; pts.push(rayHit(sdf, cx, cy, Math.cos(th), Math.sin(th), 0)); }
+    var cum = [0];
+    for (i = 0; i < K; i++) { j = (i + 1) % K; cum.push(cum[i] + Math.hypot(pts[j][0] - pts[i][0], pts[j][1] - pts[i][1])); }
+    var per = cum[K], M = Math.round(clamp(per / 0.8, 96, 560)), thetas = [], k = 0;
+    for (j = 0; j < M; j++) {
+      var s = j * per / M;
+      while (k < K - 1 && cum[k + 1] <= s) k++;
+      thetas.push((k + (s - cum[k]) / ((cum[k + 1] - cum[k]) || 1)) / K * Math.PI * 2);
+    }
+    var probe = { sdf: sdf, center: [cx, cy], thetas: thetas }, r0 = pocketRing(probe, 0), keep = [];
+    for (j = 0; j < M; j++) {   // drop inner points of straight runs (no zero-area slivers)
+      var a = r0[(j - 1 + M) % M], b = r0[(j + 1) % M], m = r0[j];
+      var ax = b[0] - a[0], ay = b[1] - a[1];
+      if (Math.abs(ax * (m[1] - a[1]) - ay * (m[0] - a[0])) / (Math.hypot(ax, ay) || 1) > 2e-4) keep.push(thetas[j]);
+    }
+    var ext = { u0: Infinity, u1: -Infinity, v0: Infinity, v1: -Infinity };
+    pts.forEach(function (q) { ext.u0 = Math.min(ext.u0, q[0]); ext.u1 = Math.max(ext.u1, q[0]); ext.v0 = Math.min(ext.v0, q[1]); ext.v1 = Math.max(ext.v1, q[1]); });
+    var mid = [(ext.u0 + ext.u1) / 2, (ext.v0 + ext.v1) / 2];
+    if (!(sdf(mid[0], mid[1]) < -P.coveR - 2)) mid = [cx, cy];
+    return {
+      id: spec.id, name: spec.name, top: spec.top, floor: spec.floor, depth: spec.top - spec.floor, sdf: sdf,
+      center: [cx, cy], mid: mid, inradius: -best, thetas: keep, ext: ext, perimeter: per
+    };
+  }
+
+  /* ---------- triangulation helpers ---------- */
+  function area2(a, b, c) { return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]); }
+  // triangulate a polygon (point list) with holes; returns triangles as index triplets into
+  // [contour..., hole0..., hole1...] with the requested winding. Points earcut drops (exactly
+  // collinear) are put back by splitting the triangle on their edge, so no T-junctions remain.
+  function triangulate(THREE, contour, holes, ccw) {
+    var all = contour.slice(), rings = [[0, contour.length]];
+    holes.forEach(function (h) { rings.push([all.length, h.length]); all = all.concat(h); });
+    var V = THREE.Vector2, toV = function (r) { return r.map(function (q) { return new V(q[0], q[1]); }); };
+    var faces = THREE.ShapeUtils.triangulateShape(toV(contour), holes.map(toV)), tris = [];
+    faces.forEach(function (f) {
+      var a = f[0], b = f[1], c = f[2];
+      if ((area2(all[a], all[b], all[c]) > 0) !== ccw) { var t = b; b = c; c = t; }
+      tris.push([a, b, c]);
+    });
+    var used = new Uint8Array(all.length);
+    tris.forEach(function (t) { used[t[0]] = used[t[1]] = used[t[2]] = 1; });
+    rings.forEach(function (rg) {
+      var start = rg[0], len = rg[1], i;
+      for (i = 0; i < len; i++) {
+        var m = start + i;
+        if (used[m]) continue;
+        var pa = i, pb = i;
+        do { pa = (pa - 1 + len) % len; } while (!used[start + pa] && pa !== i);
+        do { pb = (pb + 1) % len; } while (!used[start + pb] && pb !== i);
+        var A = start + pa, B = start + pb;
+        for (var t = 0; t < tris.length; t++) {
+          var T = tris[t], e;
+          for (e = 0; e < 3; e++) {
+            var x = T[e], y = T[(e + 1) % 3];
+            if ((x === A && y === B) || (x === B && y === A)) break;
+          }
+          if (e === 3) continue;
+          var X = T[e], Y = T[(e + 1) % 3], Z = T[(e + 2) % 3];
+          tris[t] = [X, m, Z]; tris.push([m, Y, Z]);
+          used[m] = 1;
+          break;
+        }
+      }
+    });
+    return tris;
+  }
+
+  /* ---------- printer fit (square bed, best rotation) ---------- */
+  function bedFit(pts, bed) {
+    var best = { angle: 0, size: Infinity };
+    for (var deg = 0; deg <= 90; deg += 0.5) {
+      var t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t), x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (var k = 0; k < pts.length; k++) {
+        var x = pts[k][0] * c - pts[k][1] * s, y = pts[k][0] * s + pts[k][1] * c;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+      var sz = Math.max(x1 - x0, y1 - y0);
+      if (sz < best.size - 1e-9) best = { angle: deg, size: sz };
+    }
+    best.bed = bed; best.fits = best.size <= bed - 2;
+    return best;
+  }
+
+  /* ---------- the model ---------- */
+  function build(THREE, params) {
+    var P = resolveParams(params), t = P.divider, e = P.ledge;
+    var x1 = P.ai - P.pensLen - t / 2, v2 = P.bi - P.booksW - t / 2;
+    var uA = x1 - t / 2 + e, uB = x1 + t / 2 - e, vA = v2 - t / 2 + e, vB = v2 + t / 2 - e;
+    var Hp = P.pensH, Hb = P.booksH, Hn = P.notesH;
+    var HC = { P: Hp, D1t: Math.max(Hp, Hb), D1m: Math.max(Hp, Hb, Hn), D1b: Math.max(Hp, Hn), B: Hb, D2: Math.max(Hb, Hn), N: Hn };
+    function cellOf(u, v) {
+      if (u > uB) return 'P';
+      if (u > uA) return v > vB ? 'D1t' : (v > vA ? 'D1m' : 'D1b');
+      return v > vB ? 'B' : (v > vA ? 'D2' : 'N');
+    }
+    var RANK = { P: 0, D1t: 1, D1m: 1, D1b: 1, B: 2, D2: 2, N: 2 }, VR = { D1t: 2, B: 2, D1m: 1, D2: 1, D1b: 0, N: 0 };
+
+    // perimeter with the six crossing points inserted (exact coordinates on the break lines)
+    var OUT = outerProfile(P), raw = OUT.pts, per = [], i, j;
+    for (i = 0; i < raw.length; i++) {
+      var p = raw[i], q = raw[(i + 1) % raw.length], cp = cellOf(p[0], p[1]), cq = cellOf(q[0], q[1]);
+      per.push({ x: p[0], y: p[1], cell: cp });
+      if (cp === cq) continue;
+      var X;
+      if (RANK[cp] !== RANK[cq]) {
+        var cu = (RANK[cp] === 0 || RANK[cq] === 0) ? uB : uA, f = (cu - p[0]) / (q[0] - p[0]);
+        X = { x: cu, y: p[1] + f * (q[1] - p[1]), f: f };
+      } else {
+        var cv = Math.max(VR[cp], VR[cq]) === 2 ? vB : vA, g = (cv - p[1]) / (q[1] - p[1]);
+        X = { x: p[0] + g * (q[0] - p[0]), y: cv, f: g };
+      }
+      var cross = { x: X.x, y: X.y, cells: [cp, cq], inserted: true };
+      if (Math.hypot(X.x - p[0], X.y - p[1]) < 0.02) { cross.inserted = false; per[per.length - 1] = cross; }
+      else per.push(cross);
+    }
+    // drop original points that sit on top of a crossing
+    per = per.filter(function (pt, k) {
+      if (pt.cells) return true;
+      var nx = per[(k + 1) % per.length];
+      return !(nx.cells && Math.hypot(nx.x - pt.x, nx.y - pt.y) < 0.02 && (nx.inserted = false, true));
+    });
+    var Q = {};
+    per.forEach(function (pt, k) { if (pt.cells) { var key = pt.cells.join('>'); Q[key] = (key in Q) ? -1 : k; } });
+    var need = { qtB: 'P>D1t', qtA: 'D1t>B', qlB: 'B>D2', qlA: 'D2>N', qbA: 'N>D1b', qbB: 'D1b>P' }, idx = {};
+    for (var nm in need) {
+      if (!(need[nm] in Q) || Q[need[nm]] < 0) throw new Error('layout');
+      idx[nm] = Q[need[nm]];
+    }
+
+    // points: perimeter ids 0..NP-1, then the four grid corners
+    var NP = per.length, pt2 = per.map(function (q2) { return [q2.x, q2.y]; });
+    var G = { AA: NP, AB: NP + 1, BA: NP + 2, BB: NP + 3 };
+    pt2.push([uA, vA], [uA, vB], [uB, vA], [uB, vB]);
+    var colH = pt2.map(function () { return []; });
+    function addH(id, h) { if (colH[id].indexOf(h) < 0) colH[id].push(h); }
+    per.forEach(function (q2, k) {
+      addH(k, P.chamfer);
+      if (q2.cells) { addH(k, HC[q2.cells[0]]); addH(k, HC[q2.cells[1]]); } else addH(k, HC[q2.cell]);
+    });
+    [['AA', ['D1m', 'D1b', 'N', 'D2']], ['AB', ['D1m', 'D1t', 'B', 'D2']], ['BA', ['D1m', 'D1b', 'P']], ['BB', ['D1m', 'D1t', 'P']]]
+      .forEach(function (gc) { gc[1].forEach(function (c) { addH(G[gc[0]], HC[c]); }); });
+    colH.forEach(function (a) { a.sort(function (m, n) { return m - n; }); });
+
+    var pos = [], tri = [], vmap = pt2.map(function () { return {}; });
+    function newV(x, y, z) { pos.push(x, y, z); return pos.length / 3 - 1; }
+    function vid(id, z) { var m = vmap[id]; if (!(z in m)) m[z] = newV(pt2[id][0], pt2[id][1], z); return m[z]; }
+    function chain(id, lo, hi) { return colH[id].filter(function (h) { return h >= lo - 1e-9 && h <= hi + 1e-9; }).map(function (h) { return vid(id, h); }); }
+    function zOf(v) { return pos[3 * v + 2]; }
+    function zipper(A, B) {        // vertical strip; outward = right-hand side of A -> B
+      var a = 0, b = 0;
+      while (a < A.length - 1 || b < B.length - 1) {
+        var adv = a >= A.length - 1 ? 1 : (b >= B.length - 1 ? 0 : (zOf(B[b + 1]) <= zOf(A[a + 1]) ? 1 : 0));
+        if (adv) { tri.push(A[a], B[b], B[b + 1]); b++; } else { tri.push(A[a], B[b], A[a + 1]); a++; }
+      }
+    }
+
+    // bottom: chamfered ring at z = 0, triangulated without the inserted crossings
+    var nrm = per.map(function (q2, k) {
+      var a = per[(k - 1 + NP) % NP], b = per[(k + 1) % NP], tx = b.x - a.x, ty = b.y - a.y, l = Math.hypot(tx, ty) || 1;
+      return [ty / l, -tx / l];
+    });
+    var bot = per.map(function (q2, k) { return newV(q2.x - nrm[k][0] * P.chamfer, q2.y - nrm[k][1] * P.chamfer, 0); });
+    var ess = [], essId = [];
+    per.forEach(function (q2, k) { if (!q2.inserted) { ess.push([pos[3 * bot[k]], pos[3 * bot[k] + 1]]); essId.push(k); } });
+    var bt = triangulate(THREE, ess, [], false).map(function (tr) { return tr.map(function (m) { return bot[essId[m]]; }); });
+    per.forEach(function (q2, k) {          // put the crossings back on their edges
+      if (!q2.inserted) return;
+      var A = bot[(k - 1 + NP) % NP], B = bot[(k + 1) % NP], M = bot[k];
+      for (var s = 0; s < bt.length; s++) {
+        var T = bt[s];
+        for (var e2 = 0; e2 < 3; e2++) {
+          var x = T[e2], y = T[(e2 + 1) % 3];
+          if ((x === A && y === B) || (x === B && y === A)) {
+            var Z = T[(e2 + 2) % 3]; bt[s] = [x, M, Z]; bt.push([M, y, Z]); s = bt.length; break;
+          }
+        }
+      }
+    });
+    bt.forEach(function (tr) { tri.push(tr[0], tr[1], tr[2]); });
+
+    // chamfer strip and ribbed outer walls
+    for (i = 0; i < NP; i++) {
+      j = (i + 1) % NP;
+      var c0 = vid(i, P.chamfer), c1 = vid(j, P.chamfer);
+      tri.push(bot[i], bot[j], c1, bot[i], c1, c0);
+      var mc = cellOf((per[i].x + per[j].x) / 2, (per[i].y + per[j].y) / 2);
+      zipper(chain(i, P.chamfer, HC[mc]), chain(j, P.chamfer, HC[mc]));
+    }
+
+    // compartments
+    var bd = baseSDF(P.a, P.b, P.n);
+    var specs = [
+      { id: 'pens', name: 'Pens', cell: 'P', top: Hp, floor: P.pensFloor, cons: [C('u', '>', x1 + t / 2)] },
+      { id: 'books', name: 'Books', cell: 'B', top: Hb, floor: P.booksFloor, cons: [C('u', '<', x1 - t / 2), C('v', '>', v2 + t / 2)] },
+      { id: 'notes', name: 'Post-its', cell: 'N', top: Hn, floor: P.notesFloor, cons: [C('u', '<', x1 - t / 2), C('v', '<', v2 - t / 2)] }
+    ];
+    var pockets = [], rimRing = {};
+    specs.forEach(function (sp) {
+      var pk = preparePocket(P, sp, bd), RS = 6, CS = 6, rings = [], q2, z, dl, ring;
+      var rim = Math.min(P.rimR, (pk.depth - 2) / 3), cove = Math.min(P.coveR, (pk.depth - 2) / 2);
+      for (q2 = 0; q2 <= RS; q2++) {
+        var ph = Math.PI / 2 * (1 - q2 / RS);
+        z = sp.top - rim + rim * Math.sin(ph); dl = rim * (1 - Math.cos(ph));
+        ring = pocketRing(pk, dl); rings.push({ ids: ring.map(function (r) { return newV(r[0], r[1], z); }), xy: ring });
+      }
+      for (q2 = 0; q2 <= CS; q2++) {
+        var al = -Math.PI / 2 * q2 / CS;
+        z = sp.floor + cove + cove * Math.sin(al); dl = -cove + cove * Math.cos(al);
+        ring = pocketRing(pk, dl); rings.push({ ids: ring.map(function (r) { return newV(r[0], r[1], z); }), xy: ring });
+      }
+      var M = pk.thetas.length;
+      for (q2 = 0; q2 < rings.length - 1; q2++) {
+        var lo = rings[q2 + 1].ids, hi = rings[q2].ids;
+        for (var a = 0; a < M; a++) { var b = (a + 1) % M; tri.push(lo[a], hi[b], lo[b], lo[a], hi[a], hi[b]); }
+      }
+      var fl = rings[rings.length - 1].ids, ctr = newV(pk.center[0], pk.center[1], sp.floor);
+      for (q2 = 0; q2 < M; q2++) tri.push(ctr, fl[q2], fl[(q2 + 1) % M]);
+      rimRing[sp.cell] = rings[0];
+      pk.wallRing = pocketRing(pk, 0);
+      pockets.push(pk);
+    });
+
+    // flat tops of every cell, with the compartment openings as holes
+    function run(from, to) { var r = [], k = from; for (;;) { r.push(k); if (k === to) break; k = (k + 1) % NP; } return r; }
+    var cells = {
+      P: run(idx.qbB, idx.qtB).concat([G.BB, G.BA]),
+      D1t: run(idx.qtB, idx.qtA).concat([G.AB, G.BB]),
+      B: run(idx.qtA, idx.qlB).concat([G.AB]),
+      D2: run(idx.qlB, idx.qlA).concat([G.AA, G.AB]),
+      N: run(idx.qlA, idx.qbA).concat([G.AA]),
+      D1b: run(idx.qbA, idx.qbB).concat([G.BA, G.AA]),
+      D1m: [G.AA, G.BA, G.BB, G.AB]
+    };
+    Object.keys(cells).forEach(function (c) {
+      var ids = cells[c], h = HC[c], contour = ids.map(function (id) { return pt2[id]; });
+      var vids = ids.map(function (id) { return vid(id, h); }), holes = [], holeIds = [];
+      if (rimRing[c]) { holes.push(rimRing[c].xy); holeIds = rimRing[c].ids; }
+      var map = vids.concat(holeIds);
+      triangulate(THREE, contour, holes, true).forEach(function (tr) { tri.push(map[tr[0]], map[tr[1]], map[tr[2]]); });
+    });
+
+    // vertical steps where neighbouring cells have different heights
+    [[G.BB, idx.qtB], [G.BA, G.BB], [idx.qbB, G.BA], [G.AB, G.BB], [G.AA, G.BA],
+     [idx.qtA, G.AB], [G.AA, G.AB], [G.AA, idx.qbA], [idx.qlB, G.AB], [idx.qlA, G.AA]].forEach(function (sg) {
+      var X = pt2[sg[0]], Y = pt2[sg[1]], dx = Y[0] - X[0], dy = Y[1] - X[1], l = Math.hypot(dx, dy) || 1;
+      var mx = (X[0] + Y[0]) / 2, my = (X[1] + Y[1]) / 2, nx = dy / l * 0.05, ny = -dx / l * 0.05;
+      var cr = cellOf(mx + nx, my + ny), cl = cellOf(mx - nx, my - ny);
+      if (HC[cr] === HC[cl]) return;
+      var lo = Math.min(HC[cr], HC[cl]), hi = Math.max(HC[cr], HC[cl]), a = sg[0], b = sg[1];
+      if (HC[cr] > HC[cl]) { a = sg[1]; b = sg[0]; }   // right-hand side must face the lower cell
+      zipper(chain(a, lo, hi), chain(b, lo, hi));
+    });
+
+    var u0 = Infinity, u1 = -Infinity, w0 = Infinity, w1 = -Infinity;
+    raw.forEach(function (q2) { u0 = Math.min(u0, q2[0]); u1 = Math.max(u1, q2[0]); w0 = Math.min(w0, q2[1]); w1 = Math.max(w1, q2[1]); });
+    return {
+      params: P,
+      positions: Float32Array.from(pos),
+      indices: Uint32Array.from(tri),
+      pockets: pockets,
+      outline: raw,
+      size: { L: u1 - u0, W: w1 - w0, H: P.H },
+      fit: bedFit(raw, 180),
+      ribs: OUT.ribs, ribPitch: OUT.pitch,
+      triangles: tri.length / 3
+    };
+  }
+
+  function toSTL(model) {
+    var p = model.positions, ix = model.indices, nt = ix.length / 3;
+    var buf = new ArrayBuffer(84 + nt * 50), dv = new DataView(buf), o = 84, t2;
+    var head = 'Ribbed desk organizer (mm)';
+    for (t2 = 0; t2 < head.length; t2++) dv.setUint8(t2, head.charCodeAt(t2));
+    dv.setUint32(80, nt, true);
+    for (t2 = 0; t2 < nt; t2++) {
+      var a = ix[3 * t2] * 3, b = ix[3 * t2 + 1] * 3, c = ix[3 * t2 + 2] * 3;
+      var e1x = p[b] - p[a], e1y = p[b + 1] - p[a + 1], e1z = p[b + 2] - p[a + 2];
+      var e2x = p[c] - p[a], e2y = p[c + 1] - p[a + 1], e2z = p[c + 2] - p[a + 2];
+      var nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x, l = Math.hypot(nx, ny, nz) || 1;
+      dv.setFloat32(o, nx / l, true); dv.setFloat32(o + 4, ny / l, true); dv.setFloat32(o + 8, nz / l, true); o += 12;
+      [a, b, c].forEach(function (q) { dv.setFloat32(o, p[q], true); dv.setFloat32(o + 4, p[q + 1], true); dv.setFloat32(o + 8, p[q + 2], true); o += 12; });
+      dv.setUint16(o, 0, true); o += 2;
+    }
+    return new Uint8Array(buf);
+  }
+
+  /* ---------- minimal ZIP (stored) so the STL can travel as an allowed download ---------- */
+  var CRC = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(d) { var c = 0xFFFFFFFF; for (var i = 0; i < d.length; i++) c = CRC[(c ^ d[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function utf8(s) { if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(s); var a = unescape(encodeURIComponent(s)), u = new Uint8Array(a.length); for (var i = 0; i < a.length; i++) u[i] = a.charCodeAt(i); return u; }
+  function zip(files, date) {
+    date = date || new Date();
+    var dt = ((date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1)) & 0xFFFF;
+    var dd = (((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()) & 0xFFFF;
+    var parts = [], central = [], offset = 0;
+    files.forEach(function (f) {
+      var name = utf8(f.name), data = typeof f.data === 'string' ? utf8(f.data) : f.data, crc = crc32(data);
+      var h = new Uint8Array(30 + name.length), v = new DataView(h.buffer);
+      v.setUint32(0, 0x04034b50, true); v.setUint16(4, 20, true); v.setUint16(6, 0x0800, true); v.setUint16(8, 0, true);
+      v.setUint16(10, dt, true); v.setUint16(12, dd, true); v.setUint32(14, crc, true);
+      v.setUint32(18, data.length, true); v.setUint32(22, data.length, true); v.setUint16(26, name.length, true); v.setUint16(28, 0, true);
+      h.set(name, 30);
+      var c = new Uint8Array(46 + name.length), w = new DataView(c.buffer);
+      w.setUint32(0, 0x02014b50, true); w.setUint16(4, 20, true); w.setUint16(6, 20, true); w.setUint16(8, 0x0800, true); w.setUint16(10, 0, true);
+      w.setUint16(12, dt, true); w.setUint16(14, dd, true); w.setUint32(16, crc, true); w.setUint32(20, data.length, true); w.setUint32(24, data.length, true);
+      w.setUint16(28, name.length, true); w.setUint32(42, offset, true);
+      c.set(name, 46);
+      parts.push(h, data); central.push(c); offset += h.length + data.length;
+    });
+    var csize = central.reduce(function (s, c) { return s + c.length; }, 0), end = new Uint8Array(22), ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+    ev.setUint32(12, csize, true); ev.setUint32(16, offset, true);
+    var out = new Uint8Array(offset + csize + 22), o = 0;
+    parts.concat(central, [end]).forEach(function (u) { out.set(u, o); o += u.length; });
+    return out;
+  }
+
+  return { DEFAULTS: DEFAULTS, resolveParams: resolveParams, build: build, toSTL: toSTL, zip: zip };
+});
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var G = window.OrganizerGeom;
+  var FILAMENTS = [
+    { id: 'matcha', name: 'Matcha', hex: '#A2B389' },
+    { id: 'ivory', name: 'Ivory', hex: '#ECE6DA' },
+    { id: 'ash', name: 'Ash grey', hex: '#9DA2A1' },
+    { id: 'jeans', name: 'Jeans blue', hex: '#5B7B9D' },
+    { id: 'blush', name: 'Blush', hex: '#E1B2AC' },
+    { id: 'charcoal', name: 'Charcoal', hex: '#35393C' }
+  ];
+  var GEO_KEYS = ['L', 'W', 'pitch', 'n', 'wall', 'pensLen', 'pensH', 'pensDepth', 'booksW', 'booksH', 'booksDepth', 'notesH', 'notesDepth'];
+  var DEF = { L: 200, W: 100, pitch: 5, n: 3, wall: 3, pensLen: 55, pensH: 90, pensDepth: 0, booksW: 36, booksH: 95, booksDepth: 0, notesH: 30, notesDepth: 0,
+    color: 'matcha', labels: true, items: false, bed: false, tab: 'pens' };
+  var KEY = 'ribbed-organizer-v2';
+  var state = Object.assign({}, DEF);
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && typeof saved === 'object') Object.keys(DEF).forEach(function (k) { if (k in saved) state[k] = saved[k]; }); } catch (e) {}
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var app = $('app'), stage = $('stage'), canvas = $('c'), labelsEl = $('labels');
+  function token(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function r0(x) { return Math.round(x); }
+
+  /* ---------- renderer ---------- */
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  } catch (e) {
+    var msg = document.createElement('div'); msg.className = 'nogl';
+    msg.textContent = 'This 3D view needs WebGL, which this browser has turned off. Try opening the page in Chrome or Safari.';
+    stage.appendChild(msg); return;
+  }
+  THREE.ColorManagement.legacyMode = false;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.85;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  var scene = new THREE.Scene();
+  var pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+  var camera = new THREE.PerspectiveCamera(30, 1, 5, 8000);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.09;
+  controls.minDistance = 140; controls.maxDistance = 1600;
+  controls.maxPolarAngle = Math.PI * 0.49; controls.screenSpacePanning = true;
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.9;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8d938c, 0.22));
+  var key = new THREE.DirectionalLight(0xffffff, 1.05);
+  key.position.set(-170, 330, 230); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  var sc = key.shadow.camera; sc.left = -260; sc.right = 260; sc.top = 260; sc.bottom = -260; sc.near = 50; sc.far = 1200;
+  key.shadow.bias = -0.0005; key.shadow.normalBias = 0.35; key.shadow.radius = 4;
+  scene.add(key); scene.add(key.target);
+  var rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(280, 150, -320); scene.add(rim);
+  var shadowMat = new THREE.ShadowMaterial({ opacity: 0.2 });
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), shadowMat);
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+  var world = new THREE.Group(); world.rotation.x = -Math.PI / 2; scene.add(world);   // content is Z-up like the STL
+  var bodyMat = new THREE.MeshStandardMaterial({ color: 0xa2b389, roughness: 0.68, metalness: 0, envMapIntensity: 0.5 });
+  var mesh = null, model = null;
+  var props = new THREE.Group(); world.add(props);
+  var plate = new THREE.Group(); scene.add(plate);
+
+  /* ---------- props (not part of the print) ---------- */
+  var matCache = {};
+  function mat(hex, rough) {
+    var k = hex + '|' + (rough || 0.55);
+    if (!matCache[k]) matCache[k] = new THREE.MeshStandardMaterial({ color: hex, roughness: rough || 0.55, metalness: 0, envMapIntensity: 0.5 });
+    return matCache[k];
+  }
+  function clearGroup(g) { while (g.children.length) { var c = g.children.pop(); c.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); } }
+  function cyl(r, len, hex, seg, rough) {
+    var g = new THREE.CylinderGeometry(r, r, len, seg || 24); g.rotateX(Math.PI / 2); g.translate(0, 0, len / 2);
+    var m = new THREE.Mesh(g, mat(hex, rough)); m.castShadow = true; m.receiveShadow = true; return m;
+  }
+  function box(w, d, h, hex, rough) {
+    var g = new THREE.BoxGeometry(w, d, h); g.translate(0, 0, h / 2);
+    var m = new THREE.Mesh(g, mat(hex, rough)); m.castShadow = true; m.receiveShadow = true; return m;
+  }
+  function makeWriter(kind) {
+    var g = new THREE.Group(), m;
+    if (kind === 'pencil') {
+      g.add(cyl(3.7, 160, '#E3AE1B', 6, 0.5));
+      m = cyl(3.9, 7, '#C3C6C9', 24, 0.3); m.position.z = 160; g.add(m);
+      m = cyl(3.6, 7, '#E28B98', 24, 0.7); m.position.z = 167; g.add(m);
+    } else if (kind === 'pen') {
+      g.add(cyl(4.4, 128, '#1F2C4B', 24, 0.4));
+      m = cyl(3.0, 9, '#C3C6C9', 24, 0.3); m.position.z = 128; g.add(m);
+      m = box(2.2, 1.4, 42, '#C3C6C9', 0.3); m.position.set(0, 4.9, 92); g.add(m);
+    } else if (kind === 'marker') {
+      g.add(cyl(7.2, 92, '#7FD1AE', 32, 0.5));
+      m = cyl(7.5, 34, '#2E8F69', 32, 0.5); m.position.z = 92; g.add(m);
+    } else {
+      g.add(cyl(4.2, 136, '#232526', 24, 0.45));
+      m = cyl(4.5, 30, '#C4392F', 24, 0.45); m.position.z = 106; g.add(m);
+    }
+    return g;
+  }
+  function inside(pk, u, v, margin) { return pk.sdf(u, v) < -margin; }
+  function addWriters(pk, P) {
+    var kinds = ['pencil', 'pen', 'marker', 'black'], cx = pk.mid[0], cy = pk.mid[1];
+    var lu = pk.ext.u1 - pk.ext.u0, lv = pk.ext.v1 - pk.ext.v0, spots = [], rise = pk.top - pk.floor;
+    if (lu > lv * 1.7) [-0.3, -0.1, 0.1, 0.3].forEach(function (f, i) { spots.push([cx + f * lu, cy + (i % 2 ? 0.12 : -0.12) * lv]); });
+    else if (lv > lu * 1.7) [-0.3, -0.1, 0.1, 0.3].forEach(function (f, i) { spots.push([cx + (i % 2 ? 0.12 : -0.12) * lu, cy + f * lv]); });
+    else [40, 140, 220, 320].forEach(function (a) { var t = a * Math.PI / 180, r = pk.inradius * 0.42; spots.push([cx + Math.cos(t) * r, cy + Math.sin(t) * r]); });
+    spots.forEach(function (s, i) {
+      if (!inside(pk, s[0], s[1], P.coveR + 8)) return;
+      var w = makeWriter(kinds[i]), dx = s[0] - cx, dy = s[1] - cy, dl = Math.hypot(dx, dy) || 1, tilt = 0.12;
+      while (tilt > 0 && !inside(pk, s[0] + dx / dl * Math.tan(tilt) * rise, s[1] + dy / dl * Math.tan(tilt) * rise, 6)) tilt -= 0.02;
+      w.position.set(s[0], s[1], pk.floor);
+      w.quaternion.setFromAxisAngle(new THREE.Vector3(-dy / dl, dx / dl, 0), Math.max(0, tilt));
+      props.add(w);
+    });
+  }
+  function slotSpan(pk, u, margin) {
+    var lo = pk.mid[1], hi = pk.mid[1];
+    while (inside(pk, u, lo - 0.5, margin)) lo -= 0.5;
+    while (inside(pk, u, hi + 0.5, margin)) hi += 0.5;
+    return [lo, hi];
+  }
+  function addBook(pk, P) {
+    var m = P.coveR + 0.8, span = slotSpan(pk, pk.mid[0], m), T = Math.max(8, Math.min(22, span[1] - span[0] - 6));
+    var v0 = span[0] + 0.5, v1 = v0 + T, uL = pk.mid[0], uR = pk.mid[0];
+    var ok = function (u) { return inside(pk, u, v0, m) && inside(pk, u, v1, m); };
+    while (uR - uL < 150 && ok(uL - 1)) uL -= 1;
+    while (uR - uL < 150 && ok(uR + 1)) uR += 1;
+    var w = Math.min(150, uR - uL), cx = (uL + uR) / 2, h = Math.min(205, w * 1.38), g = new THREE.Group(), cover = '#2B4B63', c;
+    if (w < 40) return;
+    c = box(w, 1.3, h, cover, 0.6); c.position.y = 0.65; g.add(c);
+    c = box(w, 1.3, h, cover, 0.6); c.position.y = T - 0.65; g.add(c);
+    c = box(1.6, T, h, cover, 0.6); c.position.set(-w / 2 + 0.8, T / 2, 0); g.add(c);
+    c = box(w - 3, T - 2.6, h - 4, '#EFE9DC', 0.85); c.position.set(0.5, T / 2, 2); g.add(c);
+    g.position.set(cx, v0, pk.floor);
+    props.add(g);
+  }
+  var PADS = [[76, 76], [51, 51], [38, 51], [51, 38], [38, 38]];
+  function padFits(pk, cx, cy, w, h, rot) {
+    var c = Math.cos(rot), s = Math.sin(rot);
+    return [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(function (q) {
+      var x = q[0] * w / 2, y = q[1] * h / 2;
+      return inside(pk, cx + x * c - y * s, cy + x * s + y * c, 1.2);
+    });
+  }
+  function bestPad(pk, from, rot) {
+    for (var i = from || 0; i < PADS.length; i++) {
+      var w = PADS[i][0], h = PADS[i][1], best = null;
+      for (var u = pk.ext.u0 + w / 2; u <= pk.ext.u1 - w / 2; u += 1) {
+        if (padFits(pk, u, pk.mid[1], w, h, rot || 0) && (!best || Math.abs(u - pk.mid[0]) < Math.abs(best.u - pk.mid[0]))) best = { u: u, v: pk.mid[1], w: w, h: h, i: i };
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+  function addNotes(pk) {
+    var a = bestPad(pk, 0, 0);
+    if (!a) return;
+    var xs = [a.u];
+    if (pk.ext.u1 - pk.ext.u0 > 2.3 * a.w) {
+      var l = a.u - a.w * 0.62, r = a.u + a.w * 0.62;
+      if (padFits(pk, l, a.v, a.w, a.h, 0) && padFits(pk, r, a.v, a.w, a.h, 0)) xs = [l, r];
+    }
+    ['#F3D34A', '#9ED3E8'].forEach(function (col, i) {
+      if (i >= xs.length) return;
+      var m = box(a.w, a.h, i ? 12 : 9, col, 0.75); m.position.set(xs[i], a.v, pk.floor); props.add(m);
+    });
+    var b = bestPad(pk, a.i, 0.2);
+    if (b && padFits(pk, xs[0], a.v, b.w, b.h, 0.2)) {
+      var m2 = box(b.w, b.h, 6, '#EE9BB8', 0.75); m2.position.set(xs[0], a.v, pk.floor + 9); m2.rotation.z = 0.2; props.add(m2);
+    }
+  }
+  function buildProps() {
+    clearGroup(props);
+    props.visible = state.items;
+    if (!state.items || !model) return;
+    var P = model.params, pk = {};
+    model.pockets.forEach(function (p) { pk[p.id] = p; });
+    addWriters(pk.pens, P); addBook(pk.books, P); addNotes(pk.notes);
+  }
+
+  /* ---------- A1 mini plate ---------- */
+  function buildPlate() {
+    clearGroup(plate);
+    plate.visible = state.bed;
+    if (!model) return;
+    var s = 180, r = 4, hs = s / 2, sh = new THREE.Shape();
+    sh.moveTo(-hs + r, -hs); sh.lineTo(hs - r, -hs); sh.absarc(hs - r, -hs + r, r, -Math.PI / 2, 0);
+    sh.lineTo(hs, hs - r); sh.absarc(hs - r, hs - r, r, 0, Math.PI / 2);
+    sh.lineTo(-hs + r, hs); sh.absarc(-hs + r, hs - r, r, Math.PI / 2, Math.PI);
+    sh.lineTo(-hs, -hs + r); sh.absarc(-hs + r, -hs + r, r, Math.PI, Math.PI * 1.5);
+    var col = new THREE.Color(token(model.fit.fits ? '--accent' : '--warn') || '#2C6A56');
+    var fill = new THREE.Mesh(new THREE.ShapeGeometry(sh, 6), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, depthWrite: false, toneMapped: false }));
+    fill.rotation.x = -Math.PI / 2; fill.position.y = 0.25; fill.renderOrder = -1; plate.add(fill);
+    var pts = sh.getPoints(8).map(function (p) { return new THREE.Vector3(p.x, 0.4, -p.y); });
+    plate.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: col, toneMapped: false })));
+    plate.rotation.y = -model.fit.angle * Math.PI / 180;
+    plate.updateMatrixWorld(true);
+  }
+
+  /* ---------- labels ---------- */
+  var tags = [];
+  function makeTags() {
+    labelsEl.textContent = ''; tags = [];
+    if (!model) return;
+    model.pockets.forEach(function (p) {
+      var el = document.createElement('div'); el.className = 'tag' + (state.tab === p.id ? ' on' : ''); el.textContent = p.name; labelsEl.appendChild(el);
+      tags.push({ el: el, id: p.id, local: new THREE.Vector3(p.mid[0], p.mid[1], p.top + 2), kind: 'cell' });
+    });
+    var pl = document.createElement('div'); pl.className = 'tag plate' + (model.fit.fits ? '' : ' warn');
+    pl.textContent = 'A1 mini plate · 180 mm'; labelsEl.appendChild(pl);
+    tags.push({ el: pl, local: new THREE.Vector3(0, 0.4, 96), kind: 'plate' });
+  }
+  var tv = new THREE.Vector3();
+  function placeTags(w, h) {
+    tags.forEach(function (t) {
+      var show = t.kind === 'plate' ? state.bed : state.labels;
+      if (!show) { t.el.hidden = true; return; }
+      tv.copy(t.local);
+      if (t.kind === 'plate') plate.localToWorld(tv); else world.localToWorld(tv);
+      tv.project(camera);
+      if (tv.z > 1 || tv.z < -1) { t.el.hidden = true; return; }
+      t.el.hidden = false;
+      var x = (tv.x * 0.5 + 0.5) * w, y = (-tv.y * 0.5 + 0.5) * h;
+      t.el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) translate(-50%,' + (t.kind === 'plate' ? '6px' : 'calc(-100% - 9px)') + ')';
+    });
+  }
+
+  /* ---------- panel text ---------- */
+  function shapeWord(n) { return n < 2.6 ? 'Oval' : n < 3.5 ? 'Soft oval' : n < 4.5 ? 'Rounded' : 'Boxy'; }
+  function filament() { return FILAMENTS.filter(function (x) { return x.id === state.color; })[0] || FILAMENTS[0]; }
+  function depthText(P, s) { return P[s + 'Full'] ? 'full depth' : r0(P[s + 'Depth']) + ' mm deep'; }
+  function settingsText() {
+    var P = model.params;
+    return 'Pens ' + r0(P.pensLen) + ' mm long, ' + r0(P.pensH) + ' mm tall, ' + depthText(P, 'pens') +
+      ' · Books ' + r0(P.booksW) + ' mm wide, ' + r0(P.booksH) + ' mm tall, ' + depthText(P, 'books') +
+      ' · Post-its ' + r0(P.notesH) + ' mm tall, ' + depthText(P, 'notes') +
+      ' · Overall ' + r0(model.size.L) + ' × ' + r0(model.size.W) + ' mm, ribs ' + (+P.pitch).toFixed(1) + ' mm, shape ' + (+P.n).toFixed(1) + ', wall ' + (+P.wall).toFixed(1) + ' mm · ' + filament().name;
+  }
+  function setInfo(id, parts) {
+    var el = $(id); el.textContent = '';
+    parts.forEach(function (p) { var n = p.b ? document.createElement('b') : document.createTextNode(p.t); if (p.b) n.textContent = p.t; el.appendChild(n); });
+  }
+  function updateInfo() {
+    var P = model.params, f = model.fit, pk = {};
+    model.pockets.forEach(function (p) { pk[p.id] = p; });
+    $('meta').textContent = r0(model.size.L) + ' × ' + r0(model.size.W) + ' × ' + r0(model.size.H) + ' mm · ' + model.ribs + ' ribs';
+    $('fit').classList.toggle('warn', !f.fits);
+    $('fitText').textContent = f.fits ? (f.angle === 0 ? 'Fits the A1 mini plate' : 'Fits the A1 mini plate at ' + r0(f.angle) + '°') : 'Too big for the A1 mini plate (' + r0(f.size) + ' mm)';
+    function dims(p) { return r0(p.ext.u1 - p.ext.u0) + ' × ' + r0(p.ext.v1 - p.ext.v0) + ' × ' + r0(p.depth) + ' mm'; }
+    var stick = Math.max(0, r0(140 - pk.pens.depth));
+    setInfo('info-pens', [{ t: 'Inside ' }, { t: dims(pk.pens), b: 1 }, { t: '. A 14 cm pen sticks out about ' + stick + ' mm.' }]);
+    var sp = slotSpan(pk.books, pk.books.mid[0], P.coveR + 0.5);
+    setInfo('info-books', [{ t: 'Inside ' }, { t: dims(pk.books), b: 1 }, { t: '. Holds books up to about ' + r0(sp[1] - sp[0]) + ' mm thick.' }]);
+    var pad = bestPad(pk.notes, 0, 0);
+    setInfo('info-notes', [{ t: 'Inside ' }, { t: dims(pk.notes), b: 1 }, { t: pad ? '. Fits ' + pad.w + ' × ' + pad.h + ' mm sticky-note pads' + (pad.w < 76 ? '; standard 76 mm pads need it wider.' : '.') : '. A small tray for clips and bits.' }]);
+    setInfo('info-all', [{ t: 'Outside ' }, { t: r0(model.size.L) + ' × ' + r0(model.size.W) + ' × ' + r0(model.size.H) + ' mm', b: 1 }, { t: ', ' + model.ribs + ' ribs at ' + model.ribPitch.toFixed(2) + ' mm.' }]);
+    $('code').textContent = settingsText();
+    $('colorName').textContent = filament().name;
+  }
+
+  /* ---------- sliders ---------- */
+  var SL = {
+    pensLen: { fmt: function (v) { return r0(v) + ' mm'; } },
+    pensH: { fmt: function (v) { return r0(v) + ' mm'; } },
+    pensDepth: { depth: 'pens' },
+    booksW: { fmt: function (v) { return r0(v) + ' mm'; } },
+    booksH: { fmt: function (v) { return r0(v) + ' mm'; } },
+    booksDepth: { depth: 'books' },
+    notesH: { fmt: function (v) { return r0(v) + ' mm'; } },
+    notesDepth: { depth: 'notes' },
+    L: { fmt: function (v) { return r0(v) + ' mm'; } },
+    W: { fmt: function (v) { return r0(v) + ' mm'; } },
+    pitch: { fmt: function (v) { return (+v).toFixed(1) + ' mm'; } },
+    n: { fmt: function (v) { return shapeWord(+v); } },
+    wall: { fmt: function (v) { return (+v).toFixed(1) + ' mm'; } }
+  };
+  function syncSliders() {
+    var P = model ? model.params : G.resolveParams(state);
+    // limits that depend on the rest of the design
+    $('pensLen').max = r0(2 * P.ai - P.divider - 45);
+    $('booksW').max = r0(2 * P.bi - P.divider - 16);
+    ['pens', 'books', 'notes'].forEach(function (s) {
+      var el = $(s + 'Depth'), full = P[s + 'H'] - P.floor;
+      el.max = String(Math.floor(full * 10) / 10); el.step = '1';
+      el.value = P[s + 'Full'] ? el.max : String(r0(P[s + 'Depth']));
+      $('o-' + s + 'Depth').textContent = P[s + 'Full'] ? 'Full · ' + r0(full) + ' mm' : r0(P[s + 'Depth']) + ' mm';
+    });
+    Object.keys(SL).forEach(function (k) {
+      if (SL[k].depth) return;
+      var v = k in P ? P[k] : state[k];
+      $(k).value = v;
+      $('o-' + k).textContent = SL[k].fmt(+(+v).toFixed(1));
+    });
+  }
+  Object.keys(SL).forEach(function (k) {
+    var el = $(k);
+    el.addEventListener('input', function () {
+      var v = +el.value;
+      if (SL[k].depth) $('o-' + k).textContent = v > +el.max - 1 ? 'Full · ' + r0(+el.max) + ' mm' : r0(v) + ' mm';
+      else $('o-' + k).textContent = SL[k].fmt(v);
+    });
+    el.addEventListener('change', function () {
+      var v = +el.value;
+      if (SL[k].depth) state[k] = v > +el.max - 1 ? 0 : v;
+      else {
+        state[k] = v;
+        if (/H$/.test(k)) {                      // keep a shallow pocket shallow, a full one full
+          var s = k.slice(0, -1), d = state[s + 'Depth'];
+          if (d > 0 && d > v - 2.4) state[s + 'Depth'] = 0;
+        }
+      }
+      scheduleRebuild();
+    });
+  });
+
+  /* ---------- build ---------- */
+  var dirty = true;
+  var lastGood = null;
+  function geoParams() { var o = {}; GEO_KEYS.forEach(function (k) { o[k] = state[k]; }); return o; }
+  function rebuild() {
+    var next;
+    try { next = G.build(THREE, geoParams()); }
+    catch (e) {
+      setStatus('That combination leaves no room for one of the sections, so I kept the last shape.', true);
+      if (lastGood) { Object.assign(state, lastGood); syncSliders(); }
+      return false;
+    }
+    model = next; lastGood = geoParams();
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(model.positions, 3));
+    g.setIndex(new THREE.BufferAttribute(model.indices, 1));
+    var shaded = THREE.BufferGeometryUtils.toCreasedNormals(g, Math.PI * 40 / 180);
+    g.dispose();
+    if (!mesh) { mesh = new THREE.Mesh(shaded, bodyMat); mesh.castShadow = true; mesh.receiveShadow = true; world.add(mesh); }
+    else { mesh.geometry.dispose(); mesh.geometry = shaded; }
+    buildProps(); buildPlate(); makeTags(); updateInfo(); syncSliders();
+    dirty = true;
+    return true;
+  }
+  var pending = null;
+  function scheduleRebuild() {
+    $('busy').classList.add('on');
+    clearTimeout(pending);
+    pending = setTimeout(function () {
+      requestAnimationFrame(function () { setTimeout(function () { rebuild(); $('busy').classList.remove('on'); persist(); }, 0); });
+    }, 0);
+  }
+
+  /* ---------- camera ---------- */
+  var tween = null, currentView = '3d';
+  function viewSize() { return { w: stage.clientWidth || 1, h: stage.clientHeight || 1 }; }
+  function fovs() { var vf = camera.fov * Math.PI / 180; return { v: vf, h: 2 * Math.atan(Math.tan(vf / 2) * camera.aspect) }; }
+  function sceneRadius() {
+    var P = model.params, r = 0.5 * Math.hypot(P.L, P.W, model.size.H);
+    if (state.bed) r = Math.max(r, 0.5 * Math.hypot(180, 180) * 0.92);
+    if (state.items) r = Math.max(r, 0.5 * Math.hypot(P.L, P.W, Math.max(model.size.H, 200)) * 0.95);
+    return r;
+  }
+  function goal(view) {
+    var P = model.params, f = fovs();
+    if (view === 'top') {
+      var hl = state.bed ? 132 : P.L / 2 + 14, hw = state.bed ? 132 : P.W / 2 + 14;
+      var d = Math.max(hl / Math.tan(f.v / 2), hw / Math.tan(f.h / 2));
+      return { pos: new THREE.Vector3(-0.8, model.size.H + d, 0), tgt: new THREE.Vector3(0, 0, 0) };
+    }
+    var tgt = new THREE.Vector3(0, state.items ? model.size.H * 0.7 : model.size.H * 0.42, 0);
+    var d2 = sceneRadius() / Math.sin(Math.min(f.v, f.h) / 2), phi = 1.0, th = 0.5;
+    return { pos: new THREE.Vector3(tgt.x + d2 * Math.sin(phi) * Math.sin(th), tgt.y + d2 * Math.cos(phi), tgt.z + d2 * Math.sin(phi) * Math.cos(th)), tgt: tgt };
+  }
+  function flyTo(view, instant) {
+    var gl = goal(view);
+    if (instant || reduceMotion) { camera.position.copy(gl.pos); controls.target.copy(gl.tgt); tween = null; controls.update(); dirty = true; return; }
+    tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: gl.pos, t1: gl.tgt, start: performance.now(), ms: 700 };
+  }
+  function refit() {
+    if (!model) return;
+    var gl = goal('3d'), dir = camera.position.clone().sub(controls.target).normalize();
+    var p1 = gl.tgt.clone().add(dir.multiplyScalar(gl.pos.distanceTo(gl.tgt)));
+    tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: p1, t1: gl.tgt, start: performance.now(), ms: reduceMotion ? 1 : 600 };
+  }
+  function setView(v) {
+    currentView = v;
+    $('view3d').setAttribute('aria-pressed', String(v === '3d'));
+    $('viewTop').setAttribute('aria-pressed', String(v === 'top'));
+    controls.autoRotate = false;
+    flyTo(v);
+  }
+
+  /* ---------- export ---------- */
+  var dlPromise = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(function () { return null; }) : Promise.resolve(null);
+  function setStatus(text, warn) { var s = $('dlStatus'); s.textContent = text; s.classList.toggle('warn', !!warn); }
+  dlPromise.then(function (d) {
+    if (!d) { $('dlBtn').disabled = true; setStatus('Downloads aren’t available in this view. Copy the settings and ask Claude in the chat for the STL.'); }
+  });
+  function baseName() { return 'ribbed-organizer-' + r0(model.size.L) + 'x' + r0(model.size.W) + 'x' + r0(model.size.H); }
+  $('dlBtn').addEventListener('click', function () {
+    if (!model) return;
+    var btn = $('dlBtn');
+    btn.disabled = true; setStatus('Preparing the STL…');
+    dlPromise.then(function (d) {
+      if (!d) { setStatus('Downloads aren’t available in this view. Copy the settings and ask Claude in the chat for the STL.'); return; }
+      var name = baseName();
+      var readme = 'Ribbed desk organizer\n\n' + settingsText() + '\n\nUnits: millimetres. Print flat side down, no supports needed.\n' +
+        (model.fit.fits && model.fit.angle ? 'On the A1 mini, rotate it ' + r0(model.fit.angle) + '° on the plate so it fits.\n' : '');
+      var data = G.zip([{ name: name + '.stl', data: G.toSTL(model) }, { name: name + '-settings.txt', data: readme }]);
+      return d.save({ filename: name + '.zip', data: new Blob([data], { type: 'application/zip' }) }).then(function () {
+        setStatus('Saved ' + name + '.zip. Unzip it to get the STL.');
+      }, function (err) {
+        var c = err && err.code;
+        if (c === 'declined') setStatus('Download cancelled.');
+        else if (c === 'rate_limited') setStatus('Another download prompt is open. Try again in a moment.', true);
+        else if (c === 'extension_not_enabled') setStatus('Zip downloads are switched off in this view. Ask Claude in the chat for the STL.', true);
+        else setStatus('The download didn’t go through here. Copy the settings and ask Claude in the chat for the STL.', true);
+      });
+    }).then(function () { btn.disabled = false; }, function () { btn.disabled = false; setStatus('Something went wrong building the file.', true); });
+  });
+  $('copyBtn').addEventListener('click', function () {
+    if (!model) return;
+    var text = 'Ribbed desk organizer: ' + settingsText(), btn = $('copyBtn');
+    function done(ok) { btn.textContent = ok ? 'Copied' : 'Select below'; setTimeout(function () { btn.textContent = 'Copy settings'; }, 1800); }
+    function selectCode() {
+      if (window.matchMedia('(max-width: 760px)').matches) { app.classList.add('expanded'); $('moreBtn').setAttribute('aria-expanded', 'true'); }
+      try { var r = document.createRange(); r.selectNodeContents($('code')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    }
+    try { navigator.clipboard.writeText(text).then(function () { done(true); }, function () { selectCode(); done(false); }); }
+    catch (e) { selectCode(); done(false); }
+  });
+
+  /* ---------- tabs, colours, toggles ---------- */
+  var TABS = ['pens', 'books', 'notes', 'all'];
+  function setTab(id) {
+    state.tab = id;
+    TABS.forEach(function (t) {
+      $('tab-' + t).setAttribute('aria-selected', String(t === id));
+      $('tab-' + t).tabIndex = t === id ? 0 : -1;
+      $('tp-' + t).hidden = t !== id;
+    });
+    tags.forEach(function (t) { if (t.kind === 'cell') t.el.classList.toggle('on', t.id === id); });
+    persist(); dirty = true;
+  }
+  TABS.forEach(function (t, i) {
+    var el = $('tab-' + t);
+    el.addEventListener('click', function () { setTab(t); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      var n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
+      setTab(n); $('tab-' + n).focus(); e.preventDefault();
+    });
+  });
+  function setPressed(el, on) { el.setAttribute('aria-pressed', String(!!on)); }
+  function syncToggles() {
+    setPressed($('tLabels'), state.labels); setPressed($('tItems'), state.items); setPressed($('tBed'), state.bed);
+    Array.prototype.forEach.call(document.querySelectorAll('.swatch'), function (b) { setPressed(b, b.dataset.id === state.color); });
+    bodyMat.color.set(filament().hex); dirty = true;
+  }
+  FILAMENTS.forEach(function (f) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'swatch'; b.dataset.id = f.id; b.style.background = f.hex;
+    b.setAttribute('aria-label', f.name); b.title = f.name;
+    b.addEventListener('click', function () { state.color = f.id; syncToggles(); if (model) updateInfo(); persist(); });
+    $('swatches').appendChild(b);
+  });
+  $('tLabels').addEventListener('click', function () { state.labels = !state.labels; syncToggles(); persist(); });
+  $('tItems').addEventListener('click', function () { state.items = !state.items; syncToggles(); buildProps(); persist(); if (currentView === 'top') flyTo('top'); else refit(); });
+  $('tBed').addEventListener('click', function () { state.bed = !state.bed; syncToggles(); buildPlate(); persist(); if (currentView === 'top') flyTo('top'); else refit(); });
+  $('view3d').addEventListener('click', function () { setView('3d'); });
+  $('viewTop').addEventListener('click', function () { setView('top'); });
+  $('moreBtn').addEventListener('click', function () {
+    var on = !app.classList.contains('expanded');
+    app.classList.toggle('expanded', on); $('moreBtn').setAttribute('aria-expanded', String(on));
+  });
+  controls.addEventListener('start', function () {
+    controls.autoRotate = false; tween = null;
+    currentView = 'free'; $('view3d').setAttribute('aria-pressed', 'false'); $('viewTop').setAttribute('aria-pressed', 'false');
+    $('hint').classList.add('gone');
+  });
+  controls.addEventListener('change', function () { dirty = true; });
+
+  /* ---------- theme ---------- */
+  function applyTheme() {
+    var a = parseFloat(token('--shadow-alpha'));
+    shadowMat.opacity = isNaN(a) ? 0.2 : a;
+    if (model) { buildPlate(); makeTags(); }
+    dirty = true;
+  }
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', applyTheme); else if (mq.addListener) mq.addListener(applyTheme);
+  }
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  /* ---------- resize & loop ---------- */
+  function resize() {
+    var s = viewSize();
+    renderer.setSize(s.w, s.h, false);
+    camera.aspect = s.w / s.h; camera.updateProjectionMatrix();
+    dirty = true;
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (tween) {
+      var k = Math.min(1, (now - tween.start) / tween.ms), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e);
+      if (k >= 1) tween = null;
+      dirty = true;
+    }
+    if (controls.update()) dirty = true;
+    if (controls.autoRotate) dirty = true;
+    if (!dirty) return;
+    dirty = false;
+    renderer.render(scene, camera);
+    var s = viewSize(); placeTags(s.w, s.h);
+  }
+
+  syncToggles();
+  resize();
+  if (!rebuild()) { Object.keys(DEF).forEach(function (k) { if (GEO_KEYS.indexOf(k) >= 0) state[k] = DEF[k]; }); rebuild(); }
+  setTab(TABS.indexOf(state.tab) >= 0 ? state.tab : 'pens');
+  applyTheme();
+  flyTo('3d', true);
+  requestAnimationFrame(loop);
+})();
+</script>

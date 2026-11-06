@@ -1,0 +1,14 @@
+{
+  "name": "parametric-desk-organizer",
+  "version": "0.2.0",
+  "description": "Parametric ribbed desk organizer with a Three.js viewer and STL export",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "stl": "node scripts/export-stl.js"
+  },
+  "devDependencies": {
+    "three": "0.147.0"
+  }
+}
