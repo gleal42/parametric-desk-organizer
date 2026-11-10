@@ -1,0 +1,89 @@
+{
+ "version": 1,
+ "name": "Mail station",
+ "settings": {
+  "surface": "ribbed",
+  "ribPitch": 5,
+  "cornerR": 8,
+  "wall": 2.4,
+  "floor": 2.4,
+  "joint": "dovetail",
+  "gap": 0.15,
+  "plate": 180,
+  "plateH": 180,
+  "grid": 5,
+  "tabDepth": 3.2,
+  "tabNeck": 6,
+  "tabAngle": 14,
+  "tabChamfer": 0.4,
+  "tabSpacing": 45,
+  "tabMinH": 6,
+  "chamfer": 0.6,
+  "rimR": 1,
+  "coveR": 3,
+  "divider": 2,
+  "drawerGap": 0.4,
+  "drawerWall": 1.6,
+  "shelfT": 2
+ },
+ "modules": [
+  {
+   "id": "m1",
+   "type": "bin",
+   "preset": "sorter",
+   "name": "Letters",
+   "x": 0,
+   "y": 40,
+   "w": 120,
+   "d": 100,
+   "h": 110,
+   "rot": 0,
+   "params": {
+    "rows": 3,
+    "frontH": 55
+   }
+  },
+  {
+   "id": "m2",
+   "type": "bin",
+   "preset": "cards",
+   "name": "Cards",
+   "x": 0,
+   "y": 0,
+   "w": 120,
+   "d": 40,
+   "h": 40,
+   "rot": 0,
+   "params": {}
+  },
+  {
+   "id": "m3",
+   "type": "cabinet",
+   "preset": "shelf",
+   "name": "Shelf",
+   "x": 120,
+   "y": 40,
+   "w": 90,
+   "d": 100,
+   "h": 80,
+   "rot": 1,
+   "params": {
+    "bays": 2,
+    "drawers": false
+   }
+  },
+  {
+   "id": "m4",
+   "type": "bin",
+   "preset": "pen-cup",
+   "name": "Pens",
+   "x": 120,
+   "y": 0,
+   "w": 90,
+   "d": 40,
+   "h": 60,
+   "rot": 0,
+   "params": {}
+  }
+ ]
+}

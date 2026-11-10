@@ -1,0 +1,44 @@
+{
+ "version": 1,
+ "name": "Start empty",
+ "settings": {
+  "surface": "ribbed",
+  "ribPitch": 5,
+  "cornerR": 8,
+  "wall": 2.4,
+  "floor": 2.4,
+  "joint": "dovetail",
+  "gap": 0.15,
+  "plate": 180,
+  "plateH": 180,
+  "grid": 5,
+  "tabDepth": 3.2,
+  "tabNeck": 6,
+  "tabAngle": 14,
+  "tabChamfer": 0.4,
+  "tabSpacing": 45,
+  "tabMinH": 6,
+  "chamfer": 0.6,
+  "rimR": 1,
+  "coveR": 3,
+  "divider": 2,
+  "drawerGap": 0.4,
+  "drawerWall": 1.6,
+  "shelfT": 2
+ },
+ "modules": [
+  {
+   "id": "m1",
+   "type": "bin",
+   "preset": "pen-cup",
+   "name": "Pens",
+   "x": 0,
+   "y": 0,
+   "w": 60,
+   "d": 60,
+   "h": 95,
+   "rot": 0,
+   "params": {}
+  }
+ ]
+}

@@ -760,11 +760,11 @@
       out.push('', 'ASSEMBLY', '');
       var joined = A.joints.filter(function (J) { return !J.blocked && J.tabs.length; }), flatJ = A.joints.filter(function (J) { return !J.blocked && !J.tabs.length; });
       if (!S.dovetail) {
-        out.push(flatJ.length ? '  Joints are flat (' + n1(S.gap) + ' mm gap). Glue the parts side by side on a flat surface:' : '  The parts stand on their own, nothing to join.');
+        out.push(flatJ.length ? '  Joints are flat (' + (Math.round(S.gap * 100) / 100) + ' mm gap). Glue the parts side by side on a flat surface:' : '  The parts stand on their own, nothing to join.');
         flatJ.forEach(function (J) { out.push('    ' + A.byId[J.a].name + ' + ' + A.byId[J.b].name); });
       } else if (!joined.length) out.push('  No dovetails in this design: the parts stand on their own.');
       else {
-        out.push('  The parts lock together with vertical dovetails (' + n1(S.gap) + ' mm gap, ' + gapNote + ').');
+        out.push('  The parts lock together with vertical dovetails (' + (Math.round(S.gap * 100) / 100) + ' mm gap, ' + gapNote + ').');
         out.push('  Stand one part on the desk and slide its neighbour straight down beside it, so the tabs run into the slots.');
         out.push('  A good order:');
         var done = {}, step = 1;
