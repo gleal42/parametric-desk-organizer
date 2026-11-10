@@ -32,7 +32,7 @@ if (exists('src/builder.html')) {
   html = fill(html, '/*__KERNEL__*/', safe(read(stub ? 'src/modular/kernel-stub.js' : 'src/modular/kernel.js')), true);
   if (stub) {
     html = fill(html, '/*__MANIFOLD_GLUE__*/', '');
-    html = fill(html, '__MANIFOLD_WASM_B64__', '');
+    html = fill(html, '"__MANIFOLD_WASM_B64__"', '""');
   } else {
     // Manifold ships as an ES module plus a .wasm file. Inline both: the glue goes into a <script type="module">
     // (its default export becomes window.ManifoldModule) and the wasm travels as base64, so the page needs no fetch.
@@ -40,7 +40,8 @@ if (exists('src/builder.html')) {
     const glue = fs.readFileSync(path.join(dir, 'manifold.js'), 'utf8');
     if (!/export default Module;?\s*$/.test(glue)) throw new Error('unexpected manifold.js: no trailing default export');
     html = fill(html, '/*__MANIFOLD_GLUE__*/', safe(glue.replace(/export default Module;?\s*$/, 'window.ManifoldModule = Module;')), true);
-    html = fill(html, '__MANIFOLD_WASM_B64__', fs.readFileSync(path.join(dir, 'manifold.wasm')).toString('base64'), true);
+    // only the quoted marker is replaced, so code may name the global without it being swapped out too
+    html = fill(html, '"__MANIFOLD_WASM_B64__"', '"' + fs.readFileSync(path.join(dir, 'manifold.wasm')).toString('base64') + '"', true);
   }
   fs.writeFileSync(path.join(root, 'dist/builder.html'), html);
   console.log('wrote dist/builder.html (' + (html.length / 1024).toFixed(0) + ' KB' + (stub ? ', STUB kernel' : '') + ')');
