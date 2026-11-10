@@ -6,6 +6,32 @@ A ribbed, oval desk organizer for 3D printing, with three sections: a pen cup, a
 
 The sketch shows the side view (top drawing, for the heights) and the plan (bottom drawing, for where each section sits).
 
+## Modular builder
+
+`dist/builder.html` is a second app: instead of one fixed layout, you assemble an organizer from modules on a plan. Modules that touch are joined with the same sliding dovetails, and each module is exported as its own STL.
+
+| Module | Use |
+|--------|-----|
+| Compartment | Pen cup, tray, sticky notes, notebook slot, letter sorter. Dividers, sloped front. |
+| Tool block | A grid of round or square holes, or slots (pens, markers, SD cards). |
+| Device stand | Phone or tablet groove with a back rest and cable notch. |
+| Drawers & shelves | A cabinet with sliding drawers or open cubbies. |
+
+- **3D** view to look and select, **Plan** view to drag, resize and snap modules together.
+- Ribs, corner rounding (overall and per module), wall and floor are set in **Style**; printer, joint gap and the parts list are in **Print**.
+- The taller neighbour carries the dovetail tabs, the lower one the slots. Everything prints upright without supports.
+- **Download STLs** saves a ZIP with one STL per part, `design.json` and a README. **Copy design** / **Load design** move a design between devices.
+
+```
+npm install
+npm run build                                   # dist/index.html and dist/builder.html
+npm test                                        # classic + modular geometry checks
+node scripts/test-editor.js                     # editing rules
+node scripts/export-modular.js desk-set out/    # STLs from a template or a design.json
+```
+
+Starter designs are in `examples/modular/`. How it works: [docs/modular-design.md](docs/modular-design.md).
+
 ## Layout
 
 ```
