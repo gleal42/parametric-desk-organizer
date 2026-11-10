@@ -83,6 +83,9 @@
     return out;
   }
 
+  // the base chamfer actually used: never more than half a wall or a floor, or a fifth of a rib
+  function effChamfer(S) { return Math.max(0, Math.min(S.chamfer, S.floor / 2, S.wall / 2, S.ribbed ? 0.2 * S.ribPitch : 9)); }
+
   /* ---------- plan helpers ---------- */
   // One rib across a unit pitch: [position along, height 0..1]. Half-round with a 6% flat in each groove.
   var RIB = (function () {
@@ -136,9 +139,25 @@
           out[i] = out[j] = [(out[i][0] + out[j][0]) / 2, (out[i][1] + out[j][1]) / 2]; bad++;
         }
       }
+      out.collapsed = (out.collapsed || 0) + bad;
       if (!bad) break;
     }
     return out;
+  }
+  // Does a ring cross itself? Features are local, so each edge is only tested against the next `win` edges.
+  function crossesItself(ring, win) {
+    var n = ring.length, i, k;
+    function orient(a, b, c) { return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]); }
+    for (i = 0; i < n; i++) {
+      var a = ring[i], b = ring[(i + 1) % n];
+      if (a[0] === b[0] && a[1] === b[1]) continue;
+      for (k = 2; k <= Math.min(win, n - 2); k++) {
+        var c = ring[(i + k) % n], d = ring[(i + k + 1) % n];
+        if (c[0] === d[0] && c[1] === d[1]) continue;
+        if (orient(a, b, c) * orient(a, b, d) < -1e-12 && orient(c, d, a) * orient(c, d, b) < -1e-12) return true;
+      }
+    }
+    return false;
   }
 
   /* The shell's plan outline, in the module frame.
@@ -175,7 +194,7 @@
     // corner posts
     function post(sd, st, atEnd, r, other, otherAtCorner) {
       if (r === 0 && other && other.kind === 'contact' && otherAtCorner) return;       // seam in the groove, no post
-      var cut = Math.max(r, 0.5 * pitch) - r;
+      var cut = Math.max(r, 0.5 * pitch, A + 2 * effChamfer(S) + 0.6) - r;     // a post stays solid after the base chamfer
       if (st.u1 - st.u0 - cut < 0.6 * pitch) { st.kind = 'flat'; return; }
       if (cut <= EPS) return;
       if (atEnd) { st.u1 -= cut; sd.st.push({ u0: st.u1, u1: sd.hi, kind: 'flat' }); }
@@ -320,65 +339,85 @@
         default: return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
       }
     }
-    function effChamfer(S) { return Math.max(0, Math.min(S.chamfer, S.floor / 2, S.wall / 2, S.ribbed ? 0.2 * S.ribPitch : 9)); }
 
     /* ----- shell ----- */
+    // The outline extruded, with its base chamfer: the bottom ring is the outline moved in point for point. If that
+    // ring would fold over somewhere (a feature narrower than the chamfer), the chamfer is made smaller.
     function shellSolid(ar, M, S, H, ch) {
-      var top = shellOutline(M, S), mb = builder();
-      if (ch > 0.01) mb.loft([{ pts: insetRing(top, ch), z: 0 }, { pts: top, z: ch }, { pts: top, z: H }]);
+      var top = shellOutline(M, S), mb = builder(), bot = null;
+      for (; ch > 0.05; ch /= 2) { bot = insetRing(top, ch); if (!bot.collapsed && !crossesItself(bot, 60)) break; bot = null; }
+      if (bot) mb.loft([{ pts: bot, z: 0 }, { pts: top, z: ch }, { pts: top, z: H }]);
       else mb.loft([{ pts: top, z: 0 }, { pts: top, z: H }]);
       return solid(ar, mb);
     }
 
     /* ----- dovetails -----
-       The nominal outline comes from ModularLayout.tabPolygon. It is offset once per settings, in its own (u, v)
-       frame (u along the joint, v from the tab's owner into the other module), and each offset outline is cut
-       at its waist into two convex pieces. A tab or a slot is then two convex hulls: that gives exact 45 degree
-       chamfers (tab: base and top; slot: flared base) even where the chamfer swallows a short edge.        */
+       The nominal outline comes from ModularLayout.tabPolygon, in its own (u, v) frame: u along the joint, v from
+       the tab's owner into the other module. It is cut at its waist into two convex halves, each kept as the
+       half-planes of its edges. Moving those edges (never the cuts) in or out gives the tab (gap/2 smaller) and
+       the slot (gap/2 larger); a chamfer is the same outline moved further at the plate. Each half is then one
+       convex solid, the hull of a few sections: one at each end of a chamfer and one wherever a short edge
+       vanishes on the way, so the 45 degree chamfers come out exact. Cached per settings.                    */
     function tabShapes(S, ch) {
       var key = [S.tabDepth, S.tabNeck, S.tabAngle, S.tabChamfer, S.gap, ch].join('/'), hit = tabCache.get(key);
       if (hit) return hit;
-      var g2 = S.gap / 2, tc = Math.min(0.3, S.tabNeck / 10), ar = new Arena(), sh;
-      var nominal = L.tabPolygon(S, { axis: 'y', at: 0, dir: 1 }, 0).map(function (p) { return [p[0], p[1] < -0.5 ? -10 : p[1]]; });   // root pushed far back; set per tab later
-      try {
-        var cs = ar.own(new CrossSection([nominal], 'Positive'));
-        var outline = function (delta) {
-          var o = Math.abs(delta) > 1e-9 ? cs.offset(delta, 'Miter', 3) : cs, pg = o.toPolygons();
-          if (o !== cs) o.delete();
-          return pg.length === 1 && pg[0].length >= 4 ? pg[0] : null;
-        };
-        var level = function (delta, z) {        // the outline at this offset, cut at its waist into two convex halves
-          var pts = outline(delta), minU = Infinity, vs = -Infinity;
-          if (!pts) return null;
-          pts.forEach(function (p) { if (p[1] > -5) minU = Math.min(minU, Math.abs(p[0])); });
-          pts.forEach(function (p) { if (p[1] > -5 && Math.abs(p[0]) <= minU + 1e-6) vs = Math.max(vs, p[1]); });
-          return { z: z, lower: pts.filter(function (p) { return p[1] <= vs + 1e-9; }), upper: pts.filter(function (p) { return p[1] >= vs - 1e-9; }) };
-        };
-        // Levels of a chamfer between offsets d0 (at height z0) and d1 (at z1). Where a short edge of the outline
-        // vanishes on the way, a level is added right there, so the convex hull through the levels is exact.
-        var ramp = function (d0, z0, d1, z1) {
-          var out = [level(d0, z0)], a = d0, na = (outline(d0) || []).length, nb = (outline(d1) || []).length, guard = 0;
-          while (na && nb && na !== nb && guard++ < 4) {
-            var lo = a, hi = d1, it, mid;
-            for (it = 0; it < 20; it++) { mid = (lo + hi) / 2; if ((outline(mid) || []).length === na) lo = mid; else hi = mid; }
-            out.push(level(hi, z0 + (z1 - z0) * (hi - d0) / (d1 - d0)));
-            a = hi; na = (outline(hi) || []).length;
+      var g2 = S.gap / 2, tc = Math.min(0.3, S.tabNeck / 10), pts = L.tabPolygon(S, { axis: 'y', at: 0, dir: 1 }, 0), n = pts.length, i;
+      var c = S.tabChamfer * S.tabDepth / Math.hypot(S.tabHalfHead - S.tabHalfNeck, S.tabDepth);     // the waist: where the neck's chamfer meets the flank
+      // half-planes n.p >= c; the root edge is replaced by v >= -10, which tabPlace() moves to the real root.
+      // The halves overlap by 2 x 0.02 mm across the cut, so their union never meets two nearly coplanar faces;
+      // the waist is a reflex corner, so that overlap stays inside the true outline.
+      var halves = { lower: [{ n: [0, -1], c: -(c + 0.02), cut: true }, { n: [0, 1], c: -10, cut: true }], upper: [{ n: [0, 1], c: c - 0.02, cut: true }] };
+      for (i = 0; i < n; i++) {
+        var a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
+        if ((a[1] < -0.5 && b[1] < -0.5) || l < 1e-9) continue;
+        var nn = [-dy / l, dx / l];
+        halves[Math.min(a[1], b[1]) >= c - 1e-9 ? 'upper' : 'lower'].push({ n: nn, c: nn[0] * a[0] + nn[1] * a[1] });
+      }
+      function section(hps, delta) {          // the convex polygon of these half-planes, edges moved out by delta
+        var poly = [[-60, -60], [60, -60], [60, 60], [-60, 60]], res = [];
+        hps.forEach(function (h) {
+          var cc = h.cut ? h.c : h.c - delta, out = [], m = poly.length, k;
+          for (k = 0; k < m; k++) {
+            var p = poly[k], q = poly[(k + 1) % m], dp = h.n[0] * p[0] + h.n[1] * p[1] - cc, dq = h.n[0] * q[0] + h.n[1] * q[1] - cc;
+            if (dp >= 0) out.push(p);
+            if ((dp >= 0) !== (dq >= 0)) { var t = dp / (dp - dq); out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); }
           }
-          out.push(level(d1, z1));
-          return out.every(Boolean) ? out : null;
-        };
-        var tab = level(-g2, 0), slot = level(g2, 0);
-        if (!tab || !slot) throw new Error('dovetail profile');
-        // heights are relative: `base` runs from the plate (z = 0) up to z = ch, `top` from -tc up to 0 below the tab's top
-        sh = { tc: tc, tab: tab, slot: slot,
-          tabBase: (ch > 0.01 && ramp(-(g2 + ch), 0, -g2, ch)) || [tab],
-          tabTop: ramp(-g2, -tc, -(g2 + tc), 0) || [tab],
-          slotFlare: ch > 0.01 ? ramp(g2 + ch + 1, -1, g2, ch) : null };
-      } finally { ar.free(); }
+          poly = out;
+        });
+        poly.forEach(function (p) { var q = res[res.length - 1]; if (!q || Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-7) res.push(p); });
+        while (res.length > 1 && Math.hypot(res[0][0] - res[res.length - 1][0], res[0][1] - res[res.length - 1][1]) <= 1e-7) res.pop();
+        return res;
+      }
+      function ramp(hps, d0, z0, d1, z1) {     // sections from offset d0 at z0 to d1 at z1, plus one wherever an edge vanishes
+        var out = [{ pts: section(hps, d0), z: z0 }], a = d0, guard = 0;
+        while (guard++ < 8) {
+          var na = section(hps, a).length, lo = a, hi = d1, it;
+          if (na === section(hps, d1).length) break;
+          for (it = 0; it < 32; it++) { var mid = (lo + hi) / 2; if (section(hps, mid).length === na) lo = mid; else hi = mid; }
+          out.push({ pts: section(hps, hi), z: z0 + (z1 - z0) * (hi - d0) / (d1 - d0) });
+          a = hi;
+        }
+        out.push({ pts: section(hps, d1), z: z1 });
+        return out;
+      }
+      // a tab chamfer that would swallow the head of a small dovetail is made smaller
+      var cht = ch;
+      while (cht > 0.05 && (section(halves.upper, -(g2 + cht)).length < 3 || section(halves.lower, -(g2 + cht)).length < 3)) cht /= 2;
+      if (cht <= 0.05) cht = 0;
+      var sh = { tc: tc };
+      ['lower', 'upper'].forEach(function (half) {
+        var hp = halves[half];
+        sh[half] = {
+          tabBase: cht > 0 ? ramp(hp, -(g2 + cht), 0, -g2, cht) : [{ pts: section(hp, -g2), z: 0 }],
+          tabTop: ramp(hp, -g2, -tc, -(g2 + tc), 0),                 // z relative to the top of the tab
+          slot: section(hp, g2),
+          flare: ch > 0.01 ? ramp(hp, g2 + ch + 1, -1, g2, ch) : null };
+        if (sh[half].slot.length < 3 || sh[half].tabBase[sh[half].tabBase.length - 1].pts.length < 3) throw new Error('dovetail profile');
+      });
       lru(tabCache, key, sh, 8);
       return sh;
     }
-    // where a dovetail sits: its centre on the side, the axis along the joint, the axis into the other module
+    // where a dovetail sits: its centre on the side, u along the side, v outwards (tab) or inwards (slot)
     function tabPlace(sd, cRel, outward, rootV) {
       var base = sd.along === 'x' ? [cRel, sd.at] : [sd.at, cRel], ux = sd.along === 'x' ? 1 : 0, uy = 1 - ux, sg = outward ? 1 : -1;
       return function (pts, z, into) {
@@ -390,20 +429,19 @@
       var put = tabPlace(sd, cRel, true, -(g2 + clamp(Math.min(ins - 0.4, ch + 0.5), 0.3, 3)));     // the root reaches this far into its owner's wall
       return union(ar, ['lower', 'upper'].map(function (half) {
         var pts = [];
-        sh.tabBase.forEach(function (lv) { put(lv[half], sh.tabBase.length > 1 ? lv.z : 0, pts); });
-        if (sh.tabBase.length === 1) put(sh.tab[half], ch, pts);
-        sh.tabTop.forEach(function (lv) { put(lv[half], sh.tabTop.length > 1 ? h + lv.z * k : h, pts); });
+        sh[half].tabBase.forEach(function (lv) { put(lv.pts, lv.z, pts); });
+        sh[half].tabTop.forEach(function (lv) { put(lv.pts, h + lv.z * k, pts); });
         return ar.own(Manifold.hull(pts));
       }));
     }
-    // A slot is not convex in height (flared at the base, straight above), so it is a straight prism plus a flare.
+    // a slot: a straight prism through the full height, plus its flare at the plate
     function slotSolid(ar, sd, cRel, H, S, ch) {
       var sh = tabShapes(S, ch), put = tabPlace(sd, cRel, false, -1.5), list = [];
       ['lower', 'upper'].forEach(function (half) {
         var pts = [], fl = [];
-        put(sh.slot[half], -1, pts); put(sh.slot[half], H + 1, pts);
+        put(sh[half].slot, -1, pts); put(sh[half].slot, H + 1, pts);
         list.push(ar.own(Manifold.hull(pts)));
-        if (sh.slotFlare) { sh.slotFlare.forEach(function (lv) { put(lv[half], lv.z, fl); }); list.push(ar.own(Manifold.hull(fl))); }
+        if (sh[half].flare) { sh[half].flare.forEach(function (lv) { put(lv.pts, lv.z, fl); }); list.push(ar.own(Manifold.hull(fl))); }
       });
       return union(ar, list);
     }
@@ -420,7 +458,7 @@
     //   o = { rect: [x0, y0, x1, y1], rad: [fl, fr, br, bl], floor, cove, rim, top: fn(x, y), above }
     function pocketRings(o) {
       var x0 = o.rect[0], y0 = o.rect[1], x1 = o.rect[2], y1 = o.rect[3], rmax = Math.max(o.rad[0], o.rad[1], o.rad[2], o.rad[3]);
-      var seg = clamp(Math.ceil(PI / 2 * (rmax + o.rim) / 1.1), 2, 12), rings = [], k, CS = 5, RS = 4;
+      var seg = o.seg || clamp(Math.ceil(PI / 2 * (rmax + o.rim) / 1.1), 2, 12), rings = [], k, CS = 5, RS = 4;
       function ring(delta) { return rrect(x0, y0, x1, y1, o.rad, delta, seg); }
       function add(pts, fn) { rings.push(zRing(pts, fn, rings[rings.length - 1])); }
       if (o.cove > 0.05) {
@@ -440,18 +478,30 @@
       var corner = { fl: Math.max(rs, cl.fl - Math.min(ins.front, ins.left)), fr: Math.max(rs, cl.fr - Math.min(ins.front, ins.right)),
         br: Math.max(rs, cl.br - Math.min(ins.back, ins.right)), bl: Math.max(rs, cl.bl - Math.min(ins.back, ins.left)) };
       var rim = Math.max(0, Math.min(S.rimR, (g.depth - 2) / 3, hasSlots ? 0.8 : 9, divided && full ? (S.divider - 0.8) / 2 : 9));
-      var cove = Math.max(0, Math.min(S.coveR, (g.depth - 2) / 2, Math.min(cw, cd) / 4)), lim = Math.min(cw, cd) / 2 - 0.05, mb = builder();
+      var cove = Math.max(0, Math.min(S.coveR, (g.depth - 2) / 2, Math.min(cw, cd) / 4)), lim = Math.min(cw, cd) / 2 - 0.05, mb = builder(), tooRound = false;
+      var i = g.inner, lim2 = Math.min(i.x1 - i.x0, i.y1 - i.y0) / 2 - 0.05, inner = [corner.fl, corner.fr, corner.br, corner.bl].map(function (r) { return Math.min(r, lim2); });
+      // Below low dividers the cells meet the open pocket above them: both use the same arc segments, and the cells
+      // are a hair rounder at the outer corners, so no sliver of a cell pokes out under the pocket's rim.
+      var seg = clamp(Math.ceil(PI / 2 * (Math.max(inner[0], inner[1], inner[2], inner[3]) + rim) / 1.1), 2, 12), bump = full ? 0 : 0.03;
       g.cells.forEach(function (c) {
         var rad = [c.col === 0 && c.row === 0 ? corner.fl : rs, c.col === p.cols - 1 && c.row === 0 ? corner.fr : rs,
-          c.col === p.cols - 1 && c.row === p.rows - 1 ? corner.br : rs, c.col === 0 && c.row === p.rows - 1 ? corner.bl : rs].map(function (r) { return Math.min(r, lim); });
-        if (full) mb.loft(pocketRings({ rect: [c.x0, c.y0, c.x1, c.y1], rad: rad, floor: g.floorZ, cove: cove, rim: rim, top: top, above: h + 2 }));
-        else mb.loft(pocketRings({ rect: [c.x0, c.y0, c.x1, c.y1], rad: rad, floor: g.floorZ, cove: Math.min(cove, (g.dividerTop - g.floorZ) / 2), rim: 0, top: top, above: g.dividerTop + 0.3 }));
+          c.col === p.cols - 1 && c.row === p.rows - 1 ? corner.br : rs, c.col === 0 && c.row === p.rows - 1 ? corner.bl : rs].map(function (r) {
+          if (r > lim + 1e-9) tooRound = true;
+          return Math.min(r > rs ? r + bump : r, lim);
+        });
+        if (full) mb.loft(pocketRings({ rect: [c.x0, c.y0, c.x1, c.y1], rad: rad, floor: g.floorZ, cove: cove, rim: rim, top: top, above: h + 2, seg: seg }));
+        else mb.loft(pocketRings({ rect: [c.x0, c.y0, c.x1, c.y1], rad: rad, floor: g.floorZ, cove: Math.min(cove, (g.dividerTop - g.floorZ) / 2), rim: 0, top: top, above: g.dividerTop + 0.3, seg: seg }));
       });
-      cutters.push(solid(ar, mb));
+      var cells = solid(ar, mb);
+      if (tooRound) {         // a corner cell too small for the corner's rounding: keep it inside the rounded inner outline
+        var ring = rrect(i.x0, i.y0, i.x1, i.y1, inner.map(function (r) { return r + bump; }), 0, seg), mp = builder();
+        cells = ar.own(cells.intersect(solid(ar, mp.loft([{ pts: ring, z: g.floorZ - 1 }, { pts: ring, z: h + 3 }]))));
+      }
+      cutters.push(cells);
       if (!full) {            // dividers lower than the walls: one open pocket above them
-        var i = g.inner, lim2 = Math.min(i.x1 - i.x0, i.y1 - i.y0) / 2 - 0.05, mb2 = builder();
-        mb2.loft(pocketRings({ rect: [i.x0, i.y0, i.x1, i.y1], rad: [corner.fl, corner.fr, corner.br, corner.bl].map(function (r) { return Math.min(r, lim2); }),
-          floor: g.dividerTop, cove: 0, rim: Math.max(0, Math.min(rim, (h - g.dividerTop - 0.5) / 2)), top: top, above: h + 2 }));
+        var mb2 = builder();
+        mb2.loft(pocketRings({ rect: [i.x0, i.y0, i.x1, i.y1], rad: inner,
+          floor: g.dividerTop, cove: 0, rim: Math.max(0, Math.min(rim, (h - g.dividerTop - 0.5) / 2)), top: top, above: h + 2, seg: seg }));
         cutters.push(solid(ar, mb2));
       }
       return cutters;
@@ -494,15 +544,17 @@
     }
 
     /* ----- cabinet drawers (local frame) ----- */
-    function drawerSolid(ar, S, dr, pull, ch) {
+    function drawerSolid(ar, S, dr, pull, ch, backR) {
       var x0 = dr.x0, x1 = dr.x1, y0 = dr.y0, y1 = dr.y1, z0 = dr.z0, z1 = dr.z1, t = S.drawerWall, W = x1 - x0, D = y1 - y0, H = z1 - z0;
-      var c = Math.min(ch, 0.5, H / 6), rad = [0.6, 0.6, 1.5, 1.5].map(function (r) { return Math.min(r, W / 4, D / 4); }), mb = builder(), body, cut = [];
+      // back corners follow the bay's (that radius less the clearance, so the gap stays the same all round)
+      var rbr = Math.max(1.5, backR.right - S.drawerGap), rbl = Math.max(1.5, backR.left - S.drawerGap), lim = Math.min(W, D) / 2 - 0.01;
+      var c = Math.min(ch, 0.5, H / 6), rad = [Math.min(0.6, W / 4, D / 4), Math.min(0.6, W / 4, D / 4), Math.min(rbr, lim), Math.min(rbl, lim)], mb = builder(), body, cut = [];
       if (c > 0.01) mb.loft([{ pts: rrect(x0, y0, x1, y1, rad, -c, 4), z: z0 }, { pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z0 + c }, { pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z1 }]);
       else mb.loft([{ pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z0 }, { pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z1 }]);
       body = solid(ar, mb);
       if (W - 2 * t > 3 && D - 2 * t > 3 && H - t > 2) {
-        var mi = builder(), ri = Math.min(1.2, (W - 2 * t) / 4, (D - 2 * t) / 4);
-        mi.loft(pocketRings({ rect: [x0 + t, y0 + t, x1 - t, y1 - t], rad: [ri, ri, ri, ri], floor: z0 + t, cove: Math.min(1.5, (H - t) / 3, (W - 2 * t) / 6, (D - 2 * t) / 6), rim: 0, top: null, above: z1 + 1 }));
+        var mi = builder(), ri = Math.min(1.2, (W - 2 * t) / 4, (D - 2 * t) / 4), li = Math.min(W - 2 * t, D - 2 * t) / 2 - 0.05;
+        mi.loft(pocketRings({ rect: [x0 + t, y0 + t, x1 - t, y1 - t], rad: [ri, ri, Math.min(li, Math.max(ri, rad[2] - t)), Math.min(li, Math.max(ri, rad[3] - t))], floor: z0 + t, cove: Math.min(1.5, (H - t) / 3, (W - 2 * t) / 6, (D - 2 * t) / 6), rim: 0, top: null, above: z1 + 1 }));
         cut.push(solid(ar, mi));
       }
       var cx = (x0 + x1) / 2;
@@ -563,7 +615,10 @@
             else if (M.wL > g.cableW + 12) cut = cut.concat(placed([box(ar, M.wL / 2 - g.cableW / 2, -12, g.floorZ, M.wL / 2 + g.cableW / 2, g.grooveY0 + Math.min(1.5, M.params.slotW / 4) + 0.05, M.h + 5)]));
           }
         } else if (M.type === 'cabinet') {
-          cut = cut.concat(placed(g.bays.map(function (b) { return box(ar, b.x0, -12, b.z0, b.x1, b.y1, b.z1); })));
+          cut = cut.concat(placed(g.bays.map(function (b) {      // open at the front, rounded at the back like the shell
+            var ring = rrect(b.x0, -12, b.x1, b.y1, [0, 0, g.backR.right, g.backR.left], 0, 8), mb = builder();
+            return solid(ar, mb.loft([{ pts: ring, z: b.z0 }, { pts: ring, z: b.z1 }]));
+          })));
           bridge = g.span;
           if (g.span > BRIDGE_MAX) warn('bridge', 'warn', '%s has ceilings that bridge ' + r0(g.span) + ' mm with nothing under them. Above ' + BRIDGE_MAX + ' mm they tend to sag: make it narrower, or print it slowly with good cooling.');
         }
@@ -582,7 +637,7 @@
           g.bays.forEach(function (b, bi) {
             var dr = { x0: b.drawer.x0, x1: b.drawer.x1, y0: shut ? g2 : b.drawer.y0, y1: b.drawer.y1, z0: b.drawer.z0, z1: b.drawer.z1 };
             if (dr.x1 - dr.x0 < 6 || dr.y1 - dr.y0 < 6 || dr.z1 - dr.z0 < 4) return;
-            var dm = meshData(placed([drawerSolid(ar, S, dr, shut ? 'notch' : M.params.pull, ch)])[0]), depth = dr.y1 - dr.y0;
+            var dm = meshData(placed([drawerSolid(ar, S, dr, shut ? 'notch' : M.params.pull, ch, g.backR)])[0]), depth = dr.y1 - dr.y0;
             dm.suffix = ':drawer' + (bi + 1); dm.role = 'drawer'; dm.label = 'drawer ' + (bi + 1); dm.bridge = 0;
             dm.slide = { dir: dir, travel: Math.round(Math.max(0, depth - Math.max(12, 0.3 * depth))) };    // a third stays in the bay, so it cannot tip out
             out.push(dm);

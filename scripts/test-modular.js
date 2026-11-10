@@ -126,10 +126,10 @@ function awkwardDesigns() {
   // a staircase: partial contacts, T junctions and a contact that ends 1 mm from a corner
   out.push(['staircase', { version: 1, name: 'stairs', settings: { grid: 1 }, modules: [
     { id: 'a', type: 'bin', name: 'A', x: 0, y: 0, w: 60, d: 60, h: 80, rot: 0, params: {} },
-    { id: 'b', type: 'bin', name: 'B', x: 60, y: 30, w: 60, d: 60, h: 50, rot: 0, params: { frontH: 20 } },
+    { id: 'b', type: 'bin', name: 'B', x: 60, y: 30, w: 60, d: 69, h: 50, rot: 0, params: { frontH: 20 } },
     { id: 'c', type: 'block', name: 'C', x: 120, y: 59, w: 50, d: 40, h: 50, rot: 0, params: {} },
     { id: 'd', type: 'bin', name: 'D', x: 20, y: 60, w: 40, d: 81, h: 30, rot: 0, params: {} },
-    { id: 'e', type: 'cabinet', name: 'E', x: 60, y: 90, w: 70, d: 51, h: 60, rot: 2, params: {} }] }]);
+    { id: 'e', type: 'cabinet', name: 'E', x: 60, y: 99, w: 70, d: 42, h: 60, rot: 2, params: {} }] }]);
   return out;
 }
 
@@ -137,7 +137,7 @@ function awkwardDesigns() {
   const kernel = await K.load();
   const wasm = await (await import('manifold-3d')).default();
   wasm.setup();
-  let fails = 0, designs = 0, parts = 0, pairs = 0, tris = 0, ms = 0, maxMs = 0, maxTris = 0, maxOver = 0;
+  let fails = 0, designs = 0, parts = 0, pairs = 0, tris = 0, ms = 0, maxMs = 0, maxTris = 0, maxOver = 0, maxOverAt = '';
   const log = [];
   function fail(name, msg) { fails++; log.push('FAIL  ' + name + ': ' + msg); }
 
@@ -209,21 +209,22 @@ function awkwardDesigns() {
         // overhangs, as printed
         const bridges = M.type === 'cabinet' && p.role === 'body' ? g.bays.map(b => b.z1) : [];
         const oh = overhangArea(pm, bridges);
-        maxOver = Math.max(maxOver, oh.area);
+        if (oh.area > maxOver) { maxOver = oh.area; maxOverAt = name + ' ' + tag + (oh.worst ? ' z ' + oh.worst.z.toFixed(2) + ' nz ' + oh.worst.n.toFixed(3) : ''); }
         if (oh.area > 0.5) bad(tag + ' overhang ' + oh.area.toFixed(2) + ' mm2 (worst at z ' + oh.worst.z.toFixed(2) + ', nz ' + oh.worst.n.toFixed(3) + ')');
         if (p.print.bridge !== (M.type === 'cabinet' && p.role === 'body' ? g.span : 0)) bad(tag + ' bridge ' + p.print.bridge);
         const f = L.fitRect(p.bbox.max[0] - p.bbox.min[0], p.bbox.max[1] - p.bbox.min[1], S.plate, p.bbox.max[2] - p.bbox.min[2], S.plateH);
         if (f.fits !== p.print.fits || f.angle !== p.print.angle) bad(tag + ' print fit');
         if (opts.mustFit && !p.print.fits) bad(tag + ' does not fit the plate');
       });
-      if (opts.overlapping) return R;
       // --- parts against each other
       const inter = (a, b) => { const r = own(a.intersect(b)); return r.isEmpty() ? 0 : r.volume(); };
+      // overlapping modules are an analysis error: they are built, but not checked against each other
+      const overlapping = (a, b) => L.overlapArea(A.byId[a], A.byId[b]) > 0;
       const near = (p, q, m) => p.bbox.min[0] < q.bbox.max[0] + m && q.bbox.min[0] < p.bbox.max[0] + m && p.bbox.min[1] < q.bbox.max[1] + m && q.bbox.min[1] < p.bbox.max[1] + m;
       const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7071, 0.7071], [-0.7071, 0.7071], [0.7071, -0.7071], [-0.7071, -0.7071]];
       for (let i = 0; i < R.parts.length; i++) for (let j = i + 1; j < R.parts.length; j++) {
         const p = R.parts[i], q = R.parts[j];
-        if (!man[p.id] || !man[q.id] || !near(p, q, 1)) continue;
+        if (!man[p.id] || !man[q.id] || !near(p, q, 1) || overlapping(p.moduleId, q.moduleId)) continue;
         const what = p.id + ' / ' + q.id;
         if (p.moduleId === q.moduleId) { const v0 = inter(man[p.id], man[q.id]); if (v0 > 1e-6) bad(what + ' intersect by ' + v0.toFixed(4) + ' mm3'); continue; }
         pairs++;
@@ -237,11 +238,15 @@ function awkwardDesigns() {
         }
       }
       // --- dovetails hold: pulled apart across the joint, tab and slot collide
+      // the widest part of the tab's head (as shrunk by the gap) is moved back to the narrowest part of the slot,
+      // which is its waist or, when the gap is wide, the mouth in the neighbour's face (gap/2 behind the joint)
+      const tp = L.tabPolygon(S, { axis: 'y', at: 0, dir: 1 }, 0).filter(q => q[1] > -0.5), uw = Math.min(...tp.map(q => Math.abs(q[0]))), uh = Math.max(...tp.map(q => Math.abs(q[0])));
+      const vw = Math.max(...tp.filter(q => Math.abs(q[0]) <= uw + 1e-6).map(q => q[1])), vh = Math.min(...tp.filter(q => Math.abs(q[0]) >= uh - 1e-6).map(q => q[1]));
       A.joints.forEach(J => {
-        if (!J.tabs.length || !man[J.owner] || !man[J.other]) return;
-        const under = S.tabDepth * Math.tan(S.tabAngle * Math.PI / 180) - S.gap / Math.cos(S.tabAngle * Math.PI / 180);
+        if (!J.tabs.length || !man[J.owner] || !man[J.other] || overlapping(J.a, J.b)) return;
+        const under = uh - uw - S.gap / Math.cos(S.tabAngle * Math.PI / 180);
         if (under < 0.08) return;                              // this profile and gap cannot lock; nothing to check
-        const d = -J.dir * 0.8 * S.tabDepth, v = inter(own(man[J.owner].translate(J.axis === 'x' ? [d, 0, 0] : [0, d, 0])), man[J.other]);
+        const d = -J.dir * (Math.min(vh, S.tabDepth - S.gap / 2) - Math.max(vw, S.gap / 2) - 0.1), v = inter(own(man[J.owner].translate(J.axis === 'x' ? [d, 0, 0] : [0, d, 0])), man[J.other]);
         if (!(v > 1e-3)) bad('joint ' + J.a + '/' + J.b + ' pulls straight apart');
       });
       // --- lift each module straight up
@@ -252,7 +257,7 @@ function awkwardDesigns() {
           mine.forEach(p => {
             const up = own(man[p.id].translate([0, 0, dz]));
             R.parts.forEach(q => {
-              if (hit || q.moduleId === M.id || !man[q.id] || !near(p, q, 1)) return;
+              if (hit || q.moduleId === M.id || !man[q.id] || !near(p, q, 1) || overlapping(M.id, q.moduleId)) return;
               const v = inter(up, man[q.id]);
               if (v > (tol !== null ? tol : 4e-5 * (p.bbox.max[2] + q.bbox.max[2]) * (A.size.w + A.size.d) + 0.01)) hit = q.id + ' by ' + v.toFixed(4) + ' mm3';
             });
@@ -275,7 +280,8 @@ function awkwardDesigns() {
   // templates: everything above, and every part fits the default plate
   C.TEMPLATES.forEach(t => checkDesign('template ' + t.id, C.template(t.id), { mustFit: true }));
   awkwardDesigns().forEach(c => checkDesign(c[0], c[1]));
-  for (let i = 0; i < count; i++) { const d = randomDesign(i); checkDesign('random ' + i + ' ' + JSON.stringify(d), d); }
+  const failed = [];
+  for (let i = 0; i < count; i++) { const d = randomDesign(i), f0 = fails; checkDesign('random ' + i, d); if (fails > f0) failed.push(d); }
 
   // overlapping modules: reported by the analysis, still built one by one
   {
@@ -352,6 +358,8 @@ function awkwardDesigns() {
 
   log.slice(0, 40).forEach(l => console.log(l.length > 900 ? l.slice(0, 900) + ' ...' : l));
   if (log.length > 40) console.log('... and ' + (log.length - 40) + ' more');
+  failed.slice(0, 3).forEach(d => console.log('to reproduce ' + d.name + ': ' + JSON.stringify(d)));
+  if (process.env.VERBOSE) console.log('worst overhang: ' + maxOverAt);
   console.log(`${designs} designs, ${parts} parts, ${pairs} neighbour pairs, ${fails} failures; avg build ${(ms / designs).toFixed(0)} ms (max ${maxMs.toFixed(0)}), ` +
     `largest part ${maxTris} triangles, worst overhang ${maxOver.toFixed(3)} mm2; desk-set ${cold.toFixed(0)} ms cold, ${warm.toFixed(0)} ms after one change`);
   process.exit(fails ? 1 : 0);

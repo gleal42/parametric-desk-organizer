@@ -91,6 +91,7 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
 #c, .plan { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; -webkit-user-select: none; user-select: none; }
 .app[data-view="plan"] #c, .app[data-view="plan"] .labels, .app[data-view="plan"] .veil, .app[data-view="plan"] .only3d { display: none; }
 .app[data-view="3d"] .plan { display: none; }
+.app.short .tools .only3d, .app.short .labels, .app.short .hint { display: none; }
 .plan { cursor: grab; }
 .plan.moving { cursor: grabbing; }
 .plan:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
@@ -108,11 +109,11 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
 .title:focus { border-color: var(--accent); background: var(--chip); outline: none; }
 .meta { font: 400 12px/1.3 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; pointer-events: none; }
 .fit {
-  margin-top: 5px; display: inline-flex; align-items: center; gap: 7px; max-width: calc(100% + 60px); min-height: 28px; position: relative;
+  margin-top: 5px; display: inline-flex; align-items: center; gap: 7px; max-width: calc(100% + 60px); min-height: 32px; position: relative;
   padding: 4px 11px 4px 9px; border-radius: 999px; border: 1px solid var(--line); text-align: left;
   background: var(--chip); font: 500 12px/1.2 var(--font-ui); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
-.fit::after { content: ""; position: absolute; inset: -7px -4px; }      /* a taller target for thumbs */
+.fit::after { content: ""; position: absolute; inset: -5px -4px; }      /* a 42 px target for thumbs */
 .fit i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
 .fit.warn i { background: var(--warn); }
 .fit.err { border-color: var(--err); background: var(--err); color: var(--err-ink); }
@@ -122,7 +123,7 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
 .warns { display: grid; gap: 4px; justify-items: start; margin-top: 4px; width: calc(100% + 60px); max-height: 38vh; overflow-y: auto; pointer-events: none; }
 .warns > * { pointer-events: auto; }
 .wrow {
-  display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 7px; align-items: start; max-width: 100%; min-height: 30px; text-align: left;
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 7px; align-items: start; max-width: 100%; min-height: 40px; text-align: left;
   padding: 6px 10px 6px 8px; border-radius: 9px; border: 1px solid var(--line); background: var(--chip);
   font: 400 12px/1.3 var(--font-ui); color: var(--ink); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
@@ -131,8 +132,8 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
 .wrow.warn svg.ic { color: var(--warn); }
 .wrow.error { border-color: var(--err); background: var(--err); color: var(--err-ink); font-weight: 600; box-shadow: 0 4px 14px rgba(179, 54, 43, 0.28); }
 .wrow.error svg.ic { color: var(--err-ink); }
-.wfix { margin-left: 23px; padding: 6px 12px; min-height: 32px; border-radius: 8px; border: 1px solid var(--err); background: var(--chip); color: var(--err); font: 600 12px/1.2 var(--font-ui); }
-.wmore { padding: 5px 10px; min-height: 28px; border-radius: 999px; border: 1px solid var(--line); background: var(--chip); font: 500 12px/1.2 var(--font-ui); color: var(--muted); }
+.wfix { margin-left: 23px; padding: 6px 14px; min-height: 40px; border-radius: 8px; border: 1px solid var(--err); background: var(--chip); color: var(--err); font: 600 12px/1.2 var(--font-ui); }
+.wmore { padding: 5px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--chip); font: 500 12px/1.2 var(--font-ui); color: var(--muted); }
 
 .views {
   position: absolute; top: calc(var(--safe-t) + 12px); right: max(12px, var(--safe-r));
@@ -140,11 +141,11 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
   background: var(--chip); border: 1px solid var(--line); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 .views button {
-  border: 0; background: transparent; border-radius: 8px; padding: 0 13px; min-width: 50px; min-height: 36px;
+  border: 0; background: transparent; border-radius: 8px; padding: 0 13px; min-width: 52px; min-height: 40px;
   font: 600 13px/1 var(--font-ui); color: var(--muted);
 }
 .views button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.tools { position: absolute; top: calc(var(--safe-t) + 64px); right: max(12px, var(--safe-r)); display: grid; gap: 6px; }
+.tools { position: absolute; top: calc(var(--safe-t) + 68px); right: max(12px, var(--safe-r)); display: grid; gap: 6px; }
 .undo { position: absolute; left: max(12px, var(--safe-l)); bottom: 12px; display: flex; gap: 6px; }
 .tool {
   width: 42px; height: 42px; display: grid; place-items: center; padding: 0; border-radius: 11px;
@@ -225,7 +226,7 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
   margin: calc(var(--safe-t) + 12px) max(18px, var(--safe-r)) 0 18px;
 }
 .tab {
-  border: 0; background: transparent; border-radius: 8px; padding: 0 2px; min-height: 36px;
+  border: 0; background: transparent; border-radius: 8px; padding: 0 2px; min-height: 40px;
   font: 600 13px/1.15 var(--font-ui); color: var(--muted); white-space: nowrap;
 }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
@@ -242,7 +243,7 @@ svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stro
 .slider output, .field-label output { font: 400 12.5px/1.2 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .track { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
 .step {
-  width: 40px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--line); background: transparent;
+  width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--line); background: transparent;
   font: 400 17px/1 var(--font-mono); color: var(--muted);
 }
 .step:active { background: var(--accent-soft); color: var(--ink); }
@@ -251,7 +252,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); heigh
 .field { display: grid; gap: 6px; min-width: 0; }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; padding: 3px; border-radius: 10px; border: 1px solid var(--line); }
 .seg button {
-  border: 0; background: transparent; border-radius: 7px; padding: 0 4px; min-height: 36px;
+  border: 0; background: transparent; border-radius: 7px; padding: 0 4px; min-height: 40px;
   font: 500 12.5px/1.15 var(--font-ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -279,7 +280,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); heigh
   border: 1px solid var(--line); background: transparent; white-space: nowrap;
 }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn.small { min-height: 36px; padding: 0 12px; font-size: 12.5px; border-color: var(--accent); color: var(--accent); }
+.btn.small { min-height: 40px; padding: 0 12px; font-size: 12.5px; border-color: var(--accent); color: var(--accent); }
 .btn.danger { background: var(--err); border-color: var(--err); color: var(--err-ink); }
 .status { margin: 0; font: 400 12px/1.4 var(--font-ui); color: var(--muted); min-height: 1.4em; }
 .status.warn { color: var(--warn); }
@@ -300,7 +301,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); heigh
 .card.tpl svg rect { fill: var(--mod); stroke: var(--mod-line); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chipbtn {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px; padding: 0 12px 0 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 40px; padding: 0 13px 0 11px; border-radius: 999px;
   border: 1px solid var(--line); background: transparent; font: 500 12.5px/1.2 var(--font-ui);
 }
 .chipbtn i { width: 9px; height: 9px; border-radius: 3px; background: var(--mod-line); flex: none; }
@@ -392,10 +393,9 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); heigh
   .app[data-sheet="min"] .panel { height: calc(84px + var(--safe-b)); }
   .app[data-sheet="min"] .scroll { visibility: hidden; }
   .panel.dragging { transition: none; }
-  .grab { display: grid; place-items: center; flex: none; width: 100%; height: 26px; padding: 0; border: 0; background: transparent; touch-action: none; cursor: ns-resize; }
+  .grab { display: grid; place-items: center; flex: none; width: 100%; height: 30px; margin-bottom: -4px; padding: 0; border: 0; background: transparent; touch-action: none; cursor: ns-resize; }
   .grab i { width: 40px; height: 4px; border-radius: 2px; background: var(--line); }
   .tabs { margin: 0 max(14px, var(--safe-r)) 0 max(14px, var(--safe-l)); }
-  .tab { min-height: 38px; }
   .tabpanel { gap: 16px; padding: 14px max(14px, var(--safe-r)) calc(var(--safe-b) + 22px) max(14px, var(--safe-l)); }
   .export { margin: 0 -14px calc(-1 * (var(--safe-b) + 22px)); padding: 10px 14px calc(var(--safe-b) + 12px); }
   .hud { right: calc(max(12px, var(--safe-r)) + 118px); left: max(14px, var(--safe-l)); }
@@ -495,7 +495,9 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); heigh
 /*__KERNEL__*/
 </script>
 <script>
-window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
+/* The build replaces every copy of the marker word, so the global's name is spelled in two halves here
+   (the kernel reads it the same way). In the built page the string holds Manifold's wasm as base64. */
+window['__MANIFOLD_' + 'WASM_B64__'] = "__MANIFOLD_WASM_B64__";
 </script>
 <script type="module">
 /*__MANIFOLD_GLUE__*/
@@ -554,7 +556,7 @@ window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
     var IC = {
       undo: '<path d="M7 5 3.5 8.5 7 12"/><path d="M4 8.5h7.5a4.25 4.25 0 0 1 0 8.5H8"/>',
       redo: '<path d="M13 5l3.5 3.5L13 12"/><path d="M16 8.5H8.5a4.25 4.25 0 0 0 0 8.5H12"/>',
-      explode: '<rect x="7.3" y="7.3" width="5.4" height="5.4" rx="1"/><path d="M5.5 5.5 3 3m0 2.6V3h2.6M14.5 5.5 17 3m-2.6 0H17v2.6M5.5 14.5 3 17m2.6 0H3v-2.6M14.5 14.5 17 17m0-2.6V17h-2.6"/>',
+      explode: '<rect x="2.5" y="2.5" width="6" height="6" rx="1.2"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.2"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.2"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.2"/>',
       drawers: '<path d="M3.5 9V4.6a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1V9"/><path d="M2.5 9.2h15l-1.2 6.4a1 1 0 0 1-1 .8H4.7a1 1 0 0 1-1-.8z"/><path d="M8.3 12.4h3.4M8.3 6.2h3.4"/>',
       labels: '<path d="M3.5 4.5h6.2l6.8 6.8-5.2 5.2L4.5 9.7z"/><circle cx="7.2" cy="7.8" r="1.1"/>',
       fit: '<path d="M3.5 7.5v-4h4M12.5 3.5h4v4M16.5 12.5v4h-4M7.5 16.5h-4v-4"/><rect x="7.4" y="7.4" width="5.2" height="5.2" rx="0.8"/>',
@@ -758,7 +760,7 @@ window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
       syncWarnings(warnings);
     }
     function syncWarnings(list) {
-      var box = $('warns'), cap = phoneMQ.matches ? 2 : 4, errors = list.filter(function (w) { return w.level === 'error'; }).length;
+      var box = $('warns'), cap = app.classList.contains('short') ? 1 : phoneMQ.matches ? 2 : 4, errors = list.filter(function (w) { return w.level === 'error'; }).length;
       var shown = warnOpen ? list : list.slice(0, Math.max(cap, Math.min(errors, 4)));
       var sig = JSON.stringify([shown.map(function (w) { return [w.level, w.message, w.ids]; }), list.length, warnOpen]);
       if (sig === warnSig) return;
@@ -976,7 +978,8 @@ window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
       Object.keys(G.mats).forEach(function (id) {
         var m = G.mats[id], M = A.byId[id], state = id === sel ? accent : M && M.warnings.indexOf('overlap') >= 0 ? err : flagged.indexOf(id) >= 0 ? warn : null;
         tmpColor.set(colorOf(id));
-        if (state) { tmpColor2.set(state); tmpColor.lerp(tmpColor2, id === sel ? 0.36 : 0.42); m.emissive.copy(tmpColor2); m.emissiveIntensity = id === sel ? 0.14 : 0.1; }
+        if (state) { tmpColor2.set(state); tmpColor.lerp(tmpColor2, id === sel ? 0.5 : 0.45); m.emissive.copy(tmpColor2); m.emissiveIntensity = id === sel ? 0.22 : 0.12; }
+        else if (sel) tmpColor.lerp(tmpColor2.set(token('--stage-hi') || '#F3F5F1'), 0.22);
         else { m.emissive.set(0x000000); m.emissiveIntensity = 0; }
         m.color.copy(tmpColor);
         if (state && M) {
@@ -1161,8 +1164,8 @@ window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
     function toScreen(x, y) { var s = viewSize(); return [s.w / 2 + (x - plan.cx) * plan.k, s.h / 2 - (y - plan.cy) * plan.k]; }
     function toPlan(px, py) { var s = viewSize(); return [plan.cx + (px - s.w / 2) / plan.k, plan.cy - (py - s.h / 2) / plan.k]; }
     function planInsets() {          // the parts of the stage the overlays cover
-      var sr = stage.getBoundingClientRect(), hr = $('fitChip').getBoundingClientRect();
-      return { top: Math.min(sr.height * 0.4, Math.max(60, hr.bottom - sr.top + 16)), right: 64, bottom: phoneMQ.matches ? 78 : 62, left: 18 };
+      var sr = stage.getBoundingClientRect(), hr = $('hud').getBoundingClientRect(), tr = $('tFit').getBoundingClientRect();
+      return { top: Math.min(sr.height * 0.4, Math.max(60, hr.bottom - sr.top + 14, tr.bottom - sr.top + 10)), right: 18, bottom: phoneMQ.matches ? 76 : 62, left: 18 };
     }
     function planGoal() {
       var b = cur().bounds, s = viewSize(), ins = planInsets();
@@ -1443,3 +1446,632 @@ window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
       planDirty = false;
       renderPlan();
     }
+
+    /* ---------- panel: generic controls ---------- */
+    var dragSeq = 0;
+    function unitText(v, step, unit) {
+      var t = (+v).toFixed(decimals(step || 1));
+      return unit ? t + (unit === '°' ? '°' : ' ' + unit) : t;
+    }
+    // A slider with − / + steppers. o: { id, label, hint, begin(), input(value), end(), stepFrom(dir) }. ctl.set({ min, max, step, value, text }).
+    function makeSlider(o) {
+      var id = 'f-' + o.id, out = h('output', { for: id }), input = h('input', { id: id, type: 'range' });
+      var minus = h('button', { class: 'step', type: 'button', 'aria-label': 'Less: ' + o.label, text: '−' });
+      var plus = h('button', { class: 'step', type: 'button', 'aria-label': 'More: ' + o.label, text: '+' });
+      var el = h('div', { class: 'slider' }, [h('label', { for: id }, [o.label, out]), h('div', { class: 'track' }, [minus, input, plus]), o.hint ? h('p', { class: 'help', text: o.hint }) : null]);
+      var ctl = { el: el, input: input, busy: false, last: null };
+      ctl.set = function (s) {
+        var key = [s.min, s.max, s.step].join('|');
+        if (key !== ctl.last) { input.min = s.min; input.max = s.max; input.step = s.step; ctl.last = key; }
+        if (+input.value !== +s.value) input.value = s.value;
+        out.textContent = s.text; input.setAttribute('aria-valuetext', s.text);
+        minus.disabled = +s.value <= +s.min + 1e-9; plus.disabled = +s.value >= +s.max - 1e-9;
+      };
+      function begin() { if (!ctl.busy) { ctl.busy = true; if (o.begin) o.begin(); } }
+      function end() { if (ctl.busy) { ctl.busy = false; if (o.end) o.end(); } }
+      input.addEventListener('pointerdown', begin);
+      input.addEventListener('input', function () { begin(); o.input(+input.value); });
+      input.addEventListener('change', end);
+      input.addEventListener('blur', end);
+      function stepBy(dir) {
+        var v = o.stepFrom ? o.stepFrom(dir) : clamp(+input.value + dir * +input.step, +input.min, +input.max);
+        begin(); o.input(v); end();
+      }
+      minus.addEventListener('click', function () { stepBy(-1); });
+      plus.addEventListener('click', function () { stepBy(1); });
+      return ctl;
+    }
+    function makeSeg(o) {          // o: { id, label, options: [{ value, label }], pick(value) }
+      var lid = 'l-' + o.id, seg = h('div', { class: 'seg', role: 'group', 'aria-labelledby': lid }), btns = [];
+      o.options.forEach(function (opt) {
+        var b = h('button', { type: 'button', 'aria-pressed': 'false', text: opt.label, title: opt.label });
+        b.addEventListener('click', function () { o.pick(opt.value); });
+        btns.push({ b: b, v: opt.value }); seg.appendChild(b);
+      });
+      var el = h('div', { class: 'field' }, [h('span', { class: 'field-label', id: lid, text: o.label }), seg, o.hint ? h('p', { class: 'help', text: o.hint }) : null]);
+      return { el: el, set: function (v) { btns.forEach(function (x) { x.b.setAttribute('aria-pressed', String(String(x.v) === String(v))); }); } };
+    }
+    function makeSwitch(o) {       // o: { label, hint, flip() }
+      var b = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': 'false' }, [h('span', { text: o.label }), h('i'), o.hint ? h('small', { text: o.hint }) : null]);
+      b.addEventListener('click', function () { o.flip(); });
+      return { el: b, set: function (on) { b.setAttribute('aria-checked', String(!!on)); } };
+    }
+    function shown(showIf, values) {
+      if (!showIf) return true;
+      return Object.keys(showIf).every(function (k) { return String(values[k]) === String(showIf[k]); });
+    }
+    // One control for a schema entry (a module parameter or a global setting). get() -> { value, range }; put(value, phase).
+    function schemaControl(d, idp, get, put) {
+      if (d.type === 'select') {
+        var sg = makeSeg({ id: idp + d.key, label: d.label, options: d.options, hint: d.hint, pick: function (v) { put(v); } });
+        return { el: sg.el, d: d, update: function () { sg.set(get().value); } };
+      }
+      if (d.type === 'toggle') {
+        var sw = makeSwitch({ label: d.label, hint: d.hint, flip: function () { put(!get().value); } });
+        return { el: sw.el, d: d, update: function () { sw.set(get().value); } };
+      }
+      var step = d.type === 'int' ? 1 : d.step || 1, lim = { min: 0, max: 0, top: 0 };
+      function limits() {
+        var g = get(), rg = g.range || d, mn = +rg.min, mx = Math.max(mn, +rg.max), n = Math.ceil((mx - mn) / step - 1e-9);
+        lim = { min: mn, max: mx, top: +(mn + n * step).toFixed(decimals(step) + 1) };
+        return g;
+      }
+      var sl = makeSlider({ id: idp + d.key, label: d.label, hint: d.hint,
+        begin: function () { put(null, 'begin'); },
+        input: function (v) {
+          var val;
+          if (d.auto && v >= lim.top - 1e-9) val = 0;
+          else { val = clamp(v, lim.min, lim.max); if (d.type === 'int') val = Math.round(val); }
+          put(val, 'input');
+        },
+        end: function () { put(null, 'end'); },
+        stepFrom: function (dir) {
+          var g = get(), v = d.auto && !(g.value > 0) ? lim.top : +g.value;
+          if (d.auto && !(g.value > 0) && dir > 0) return lim.top;
+          return clamp(Math.round((v + dir * step) / step) * step, lim.min, lim.top);
+        } });
+      return { el: sl.el, d: d, update: function () {
+        var g = limits(), isAuto = d.auto && !(g.value > 0), v = isAuto ? lim.top : clamp(+g.value, lim.min, lim.top);
+        var text = isAuto ? d.auto.label + (d.unit === 'mm' ? ' · ' + unitText(lim.max, step, d.unit) : '') : unitText(v, step, d.unit);
+        sl.set({ min: lim.min, max: lim.top, step: step, value: v, text: text });
+      } };
+    }
+    // a slider or a seg drag edits relative to the design it started from, as one undo step
+    function dragEdit(fn) {
+      var st = { base: null, key: null };
+      return function (value, phase) {
+        if (phase === 'begin') { st.base = design(); st.key = 'drag' + (++dragSeq); return; }
+        if (phase === 'end') { st.base = null; seal(); return; }
+        var base = st.base || design(), r = fn(base, value);
+        if (st.base) commit(r.ok ? r.design : base, st.key);
+        else { apply(r); seal(); }
+      };
+    }
+
+    /* ---------- the Module tab ---------- */
+    var tpModule = $('tp-module'), modView = '', modForm = null;
+    function planThumb(modules) {
+      var b = E.boundsOf(modules), w = Math.max(1, b.x1 - b.x0), d = Math.max(1, b.y1 - b.y0), k = Math.min(40 / w, 32 / d), ox = 2 + (40 - w * k) / 2, oy = 2 + (32 - d * k) / 2;
+      return '<svg viewBox="0 0 44 36" aria-hidden="true">' + modules.map(function (m) {
+        return '<rect x="' + f1(ox + (m.x - b.x0) * k) + '" y="' + f1(oy + (b.y1 - m.y - m.d) * k) + '" width="' + f1(m.w * k) + '" height="' + f1(m.d * k) + '" rx="1.2"/>';
+      }).join('') + '</svg>';
+    }
+    function paletteSection(near) {
+      var cards = h('div', { class: 'cards' });
+      C.PRESETS.forEach(function (p) {
+        var c = h('button', { class: 'card', type: 'button', 'data-preset': p.id, html: typeIcon(p.type) }, [h('b', { text: p.label }), h('small', { text: p.blurb || C.TYPES[p.type].blurb })]);
+        c.addEventListener('click', function () { addPreset(p.id, near); });
+        cards.appendChild(c);
+      });
+      return cards;
+    }
+    function addPreset(presetId, near) {
+      var r = E.add(design(), presetId, near ? { near: near } : {});
+      if (!r.ok) return;
+      commit(r.design);
+      select(r.id, { tab: true });
+      var M = analysis.byId[r.id];
+      toast('Added ' + (M ? M.name : 'a module') + (near && analysis.byId[near] ? ' next to ' + analysis.byId[near].name : '') + '.');
+      planFollow();
+      if (ui.view === 'plan' && !planShows([r.id])) planFit(false);
+    }
+    function useTemplate(t) {
+      function go() {
+        var d = C.normalizeDesign(C.template(t.id));
+        commit(d); seal();
+        baseline = JSON.stringify(hist.present);
+        select(null);
+        planFit(false); if (G) G.fitBox = null;
+        toast('Started from ' + t.label + '. Undo brings back your design.');
+        persist();
+      }
+      if (edited()) ask('Replace your design?', 'This puts the ' + t.label + ' template in place of “' + design().name + '”. Undo brings it back.', 'Replace', go);
+      else go();
+    }
+    function renderModuleTab(view, M) {
+      tpModule.textContent = ''; modForm = null;
+      if (view === 'pick') {
+        var chips = h('div', { class: 'chips', id: 'modChips' });
+        tpModule.appendChild(h('section', { class: 'sec', 'aria-label': 'Modules' }, [
+          h('p', { class: 'lead', text: 'Tap a module to edit it, or add one. Modules that touch are dovetailed together for you.' }), chips]));
+        tpModule.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Add a module' })]), paletteSection(null)]));
+        var tpls = h('div', { class: 'cards' });
+        C.TEMPLATES.forEach(function (t) {
+          var c = h('button', { class: 'card tpl', type: 'button', 'data-template': t.id, html: planThumb(t.modules) }, [h('b', { text: t.label }), h('small', { text: t.blurb })]);
+          c.addEventListener('click', function () { useTemplate(t); });
+          tpls.appendChild(c);
+        });
+        tpModule.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Start from a template' })]), tpls]));
+        var sig = '';
+        modForm = { update: function (A) {
+          var s = JSON.stringify(A.modules.map(function (m) { return [m.id, m.name, m.warnings.indexOf('overlap') >= 0]; }));
+          if (s === sig) return;
+          sig = s; chips.textContent = '';
+          A.modules.forEach(function (m) {
+            var b = h('button', { class: 'chipbtn', type: 'button', 'data-id': m.id }, [h('i'), h('span', { text: m.name })]);
+            b.firstChild.style.background = colorOf(m.id);
+            b.addEventListener('click', function () { select(m.id, { tab: true }); });
+            chips.appendChild(b);
+          });
+        } };
+        return;
+      }
+      if (view.indexOf('add:') === 0) {
+        var back = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Back to ' + M.name, html: icon('close') });
+        back.addEventListener('click', function () { adding = false; syncModuleTab(); });
+        tpModule.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'backrow' }, [h('b', { text: 'Add next to ' + M.name }), back]), paletteSection(M.id)]));
+        return;
+      }
+      // editing one module
+      var id = M.id, T = C.TYPES[M.type], ctls = [];
+      var nameIn = h('input', { class: 'text', id: 'modName', type: 'text', maxlength: '30', 'aria-label': 'Module name', autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'done' });
+      nameIn.addEventListener('input', function () { var r = E.rename(design(), id, nameIn.value); if (r.ok) commit(r.design, 'name:' + id); });
+      function doneName() { seal(); var m = cur().byId[id]; if (m) nameIn.value = m.name; }
+      nameIn.addEventListener('change', doneName); nameIn.addEventListener('blur', doneName);
+      nameIn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); nameIn.blur(); } });
+      var close = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Done, deselect', title: 'Deselect', html: icon('close') });
+      close.addEventListener('click', function () { select(null); });
+      var info = h('p', { class: 'info', id: 'modInfo' });
+      tpModule.appendChild(h('section', { class: 'sec', 'aria-label': 'Module' }, [h('div', { class: 'mhead', html: typeIcon(M.type) }, [nameIn, close]), info]));
+      function act(label, ic, fn, cls) {
+        var b = h('button', { class: 'act' + (cls ? ' ' + cls : ''), type: 'button', html: icon(ic) }, [h('span', { text: label })]);
+        b.addEventListener('click', fn); return b;
+      }
+      tpModule.appendChild(h('div', { class: 'acts', role: 'toolbar', 'aria-label': 'Module actions' }, [
+        act('Rotate', 'rotate', function () { apply(E.rotate(design(), id)); }),
+        act('Duplicate', 'duplicate', function () { var r = apply(E.duplicate(design(), id)); if (r.ok) { select(r.id); toast('Duplicated ' + cur().byId[r.id].name + '.'); planFollow(); } }),
+        act('Add next', 'plus', function () { adding = true; syncModuleTab(); $('scroll').scrollTop = 0; }),
+        act('Delete', 'trash', function () { deleteSelected(); }, 'del')]));
+      // size
+      var sizeSec = h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Size' }), h('span', { id: 'modSize' })])]);
+      [['w', 'Width'], ['d', 'Depth'], ['h', 'Height']].forEach(function (q) {
+        var dim = q[0], edge = null, lim = { lo: 0, hi: 0 };
+        var put = dragEdit(function (base, v) { return E.setSize(base, id, dim, v, dim === 'h' ? {} : { edge: edge }); });
+        var sl = makeSlider({ id: 'size-' + dim, label: q[1],
+          begin: function () { edge = dim === 'h' ? null : E.pickEdge(design(), id, dim); put(null, 'begin'); },
+          input: function (v) { if (!edge && dim !== 'h') edge = E.pickEdge(design(), id, dim); put(v, 'input'); },
+          end: function () { edge = null; put(null, 'end'); },
+          stepFrom: function (dir) {
+            var m = cur().byId[id], g = cur().settings.grid, v = m ? m[dim] : 0, k = v / g, on = Math.abs(k - Math.round(k)) < 1e-6;
+            return (on ? Math.round(k) + dir : dir > 0 ? Math.floor(k) + dir : Math.ceil(k) + dir) * g;
+          } });
+        sizeSec.appendChild(sl.el);
+        ctls.push({ update: function (A, m) {
+          var L0 = E.limits(m)[dim], g = A.settings.grid;
+          lim = { lo: Math.floor(L0[0] / g) * g, hi: Math.ceil(L0[1] / g) * g };
+          sl.set({ min: lim.lo, max: lim.hi, step: g, value: m[dim], text: n1(m[dim]) + ' mm' });
+        } });
+      });
+      tpModule.appendChild(sizeSec);
+      // the type's own parameters, from its schema
+      if (T.params.length) {
+        var pSec = h('section', { class: 'sec', 'aria-label': T.label + ' settings' }, [h('div', { class: 'sec-head' }, [h('h2', { text: T.label })])]);
+        T.params.forEach(function (d) {
+          var c = schemaControl(d, 'p-', function () { var m = cur().byId[id]; return { value: m ? m.params[d.key] : d.default, range: m && m.ranges ? m.ranges[d.key] : null }; },
+            dragEdit(function (base, v) { return E.setParam(base, id, d.key, v); }));
+          pSec.appendChild(c.el);
+          ctls.push({ update: function (A, m) { c.el.hidden = !shown(d.showIf, m.params); if (!c.el.hidden) c.update(); } });
+        });
+        tpModule.appendChild(pSec);
+      }
+      // position
+      var pos = h('output', { id: 'modPos' }), pad = h('div', { class: 'nudge', role: 'group', 'aria-label': 'Move by one grid step' });
+      [['left', -1, 0, 'Move left'], ['down', 0, -1, 'Move to the front'], ['up', 0, 1, 'Move to the back'], ['right', 1, 0, 'Move right']].forEach(function (q) {
+        var b = h('button', { class: 'iconbtn', type: 'button', 'aria-label': q[3], title: q[3], html: icon(q[0]) });
+        b.addEventListener('click', function () { apply(E.nudge(design(), id, q[1], q[2])); });
+        pad.appendChild(b);
+      });
+      pad.appendChild(pos);
+      tpModule.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Position' })]), pad]));
+      modForm = { update: function (A, m) {
+        if (!m) return;
+        if (document.activeElement !== nameIn) nameIn.value = m.name;
+        info.textContent = m.info;
+        $('modSize').textContent = sizeText(m) + ' mm';
+        pos.textContent = 'x ' + n1(m.x) + ' · y ' + n1(m.y) + ' mm';
+        ctls.forEach(function (c) { c.update(A, m); });
+      } };
+    }
+    function syncModuleTab() {
+      var A = cur(), M = sel && A.byId[sel], view = M ? (adding ? 'add:' + M.id : 'edit:' + M.id + ':' + M.type) : 'pick';
+      if (view !== modView) { modView = view; renderModuleTab(view, M); }
+      if (modForm) modForm.update(A, M);
+    }
+    function deleteSelected() {
+      var M = sel && cur().byId[sel];
+      if (!M) return;
+      var r = apply(E.remove(design(), M.id));
+      if (r.ok) { toast('Deleted ' + M.name + '. Undo brings it back.'); planFollow(); }
+    }
+
+    /* ---------- the Style and Print tabs (rendered once, then kept in step) ---------- */
+    var settingCtls = [];
+    function settingControls(group, into) {
+      C.SETTINGS.forEach(function (d) {
+        if (d.group !== group || !d.label) return;
+        var c = schemaControl(d, 's-', function () { return { value: cur().settings[d.key], range: null }; }, dragEdit(function (base, v) { return E.setSetting(base, d.key, v); }));
+        into.appendChild(c.el);
+        settingCtls.push({ update: function (A) { c.el.hidden = !shown(d.showIf, A.settings); if (!c.el.hidden) c.update(); } });
+      });
+    }
+    var styleUI = {};
+    (function renderStyleTab() {
+      var tp = $('tp-style'), shape = h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Shape' })])]);
+      settingControls('style', shape);
+      tp.appendChild(shape);
+      var sw = h('div', { class: 'swatches', role: 'group', 'aria-label': 'Filament colour' });
+      styleUI.colorName = h('span');
+      FILAMENTS.forEach(function (f) {
+        var b = h('button', { class: 'swatch', type: 'button', 'data-id': f.id, 'aria-label': f.name, title: f.name, 'aria-pressed': 'false' }, [h('i')]);
+        b.firstChild.style.background = f.hex;
+        b.addEventListener('click', function () { ui.color = f.id; syncStyleTab(); paint3D(); planDirty = true; persist(); });
+        sw.appendChild(b);
+      });
+      styleUI.each = makeSwitch({ label: 'Colour each module', hint: 'Tints every module differently so the parts are easy to tell apart. Only the preview changes.',
+        flip: function () { ui.colorEach = !ui.colorEach; syncStyleTab(); paint3D(); planDirty = true; modView = ''; syncModuleTab(); persist(); } });
+      styleUI.labels = makeSwitch({ label: 'Labels in 3D', hint: 'Module names over the 3D view.', flip: function () { ui.labels = !ui.labels; syncTools(); syncStyleTab(); if (G) G.dirty = true; persist(); } });
+      tp.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Filament' }), styleUI.colorName]), sw, styleUI.each.el]));
+      tp.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Show' })]), styleUI.labels.el]));
+      tp.appendChild(h('p', { class: 'foot', text: 'Outer faces get the ribs and rounded corners; faces where two modules meet stay flat and flush. Every part prints upright without supports.' }));
+    })();
+    function syncStyleTab() {
+      var A = cur();
+      settingCtls.forEach(function (c) { c.update(A); });
+      styleUI.colorName.textContent = ui.colorEach ? 'Each module' : filament().name;
+      Array.prototype.forEach.call($('tp-style').querySelectorAll('.swatch'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === ui.color)); });
+      styleUI.each.set(ui.colorEach); styleUI.labels.set(ui.labels);
+    }
+    var printUI = {};
+    (function renderPrintTab() {
+      var tp = $('tp-print'), pr = h('div', { class: 'printers', role: 'group', 'aria-label': 'Printer' });
+      printUI.printers = [];
+      C.PRINTERS.forEach(function (p) {
+        var b = h('button', { class: 'printer', type: 'button', 'aria-pressed': 'false', 'data-printer': p.id }, [h('b', { text: p.label }), h('small', { text: n1(p.plate) + ' × ' + n1(p.plate) + ' × ' + n1(p.plateH) + ' mm' })]);
+        b.addEventListener('click', function () { var r = E.setSettings(design(), { plate: p.plate, plateH: p.plateH }); if (r.ok) { commit(r.design); seal(); } });
+        printUI.printers.push({ b: b, p: p }); pr.appendChild(b);
+      });
+      var printSec = h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Printer' }), printUI.printerName = h('span')]), pr]);
+      settingControls('print', printSec);
+      tp.appendChild(printSec);
+      var lay = h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Layout' })])]);
+      settingControls('layout', lay);
+      lay.appendChild(h('p', { class: 'help', text: 'Moving, resizing and the − / + buttons use this step. Dragged modules also snap flush to their neighbours.' }));
+      tp.appendChild(lay);
+      printUI.parts = h('ul', { class: 'parts', id: 'partsList', 'aria-label': 'Parts' });
+      tp.appendChild(h('section', { class: 'sec' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Parts' }), printUI.partsCount = h('span')]), printUI.parts]));
+      // load a design
+      printUI.area = h('textarea', { class: 'area', id: 'loadText', rows: '3', placeholder: 'Paste a design here', 'aria-label': 'Design to load', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'off' });
+      printUI.loadMsg = h('p', { class: 'status', id: 'loadMsg', role: 'status' });
+      var loadBtn = h('button', { class: 'btn small', type: 'button', id: 'loadBtn', text: 'Load' });
+      loadBtn.addEventListener('click', function () { loadText(printUI.area.value); });
+      var file = h('input', { type: 'file', id: 'loadFile', accept: '.json,application/json,text/plain', 'aria-label': 'Open a design file' });
+      file.addEventListener('change', function () {
+        var f = file.files && file.files[0];
+        if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function () { printUI.area.value = String(rd.result || ''); loadText(printUI.area.value); file.value = ''; };
+        rd.onerror = function () { loadMsg('That file could not be read.', 'err'); file.value = ''; };
+        rd.readAsText(f);
+      });
+      tp.appendChild(h('section', { class: 'sec', 'aria-label': 'Load a design' }, [h('div', { class: 'sec-head' }, [h('h2', { text: 'Load a design' })]),
+        h('p', { class: 'help', text: 'Paste what Copy design gave you, or open a design.json from a download.' }), printUI.area,
+        h('div', { class: 'row' }, [loadBtn, h('span', { class: 'btn small filebtn', text: 'Open file…' }, [file])]), printUI.loadMsg]));
+      tp.appendChild(h('p', { class: 'foot', text: 'The zip holds one STL per part, already turned for the plate, plus design.json and assembly notes. Parts slide together from above; with a 0.10 mm gap they hold by friction.' }));
+      // download and copy, always in reach at the bottom of this tab
+      printUI.dl = h('button', { class: 'btn primary', id: 'dlBtn', type: 'button', text: 'Download STLs' });
+      printUI.copy = h('button', { class: 'btn', id: 'copyBtn', type: 'button', text: 'Copy design' });
+      printUI.status = h('p', { class: 'status', id: 'dlStatus', role: 'status', 'aria-live': 'polite' });
+      printUI.dl.addEventListener('click', download);
+      printUI.copy.addEventListener('click', copyDesign);
+      tp.appendChild(h('div', { class: 'export' }, [printUI.dl, printUI.copy, printUI.status]));
+    })();
+    function syncPrintTab() {
+      var A = cur(), S = A.settings, p = printerOf(S);
+      settingCtls.forEach(function (c) { c.update(A); });
+      printUI.printers.forEach(function (x) { x.b.setAttribute('aria-pressed', String(x.p === p)); });
+      printUI.printerName.textContent = p ? n1(S.plate) + ' mm plate' : 'Custom plate';
+      syncPartsList();
+    }
+    var partsSig = '';
+    function syncPartsList() {
+      var list = partsInfo(), sig = JSON.stringify([list, sel, ui.colorEach]);
+      printUI.partsCount.textContent = list.length + (list.length === 1 ? ' part' : ' parts');
+      if (sig === partsSig) return;
+      partsSig = sig; printUI.parts.textContent = '';
+      list.forEach(function (p) {
+        var why = !p.fits ? (p.wide ? '⚠ too wide' : '⚠ too tall') : p.bridge > 120 ? '⚠ long bridge' : '✓ fits' + (p.angle ? ' · ' + Math.round(p.angle) + '°' : '');
+        var b = h('button', { class: 'part' + (why.charAt(0) === '⚠' ? ' warn' : ''), type: 'button', 'aria-pressed': String(p.moduleId === sel), 'data-id': p.moduleId },
+          [h('i'), h('b', { text: p.name }), h('small', { text: n1(p.size[0]) + ' × ' + n1(p.size[1]) + ' × ' + n1(p.size[2]) + ' mm' }), h('em', { text: why })]);
+        b.firstChild.style.background = colorOf(p.moduleId);
+        b.addEventListener('click', function () { select(p.moduleId); });
+        printUI.parts.appendChild(h('li', {}, [b]));
+      });
+    }
+    function loadMsg(text, cls) { printUI.loadMsg.textContent = text; printUI.loadMsg.className = 'status' + (cls ? ' ' + cls : ''); }
+    function loadText(text) {
+      text = String(text || '').trim();
+      if (!text) { loadMsg('Paste a design first.', 'warn'); return; }
+      var d;
+      try { d = C.parse(text); }
+      catch (e) {
+        loadMsg(e instanceof SyntaxError ? 'That is not design text. Paste everything Copy design gave you, from { to }.' : (e && e.message) || 'That design could not be read.', 'err');
+        return;
+      }
+      if (!d.modules.length) { loadMsg('That design has no modules in it.', 'err'); return; }
+      commit(d); seal();
+      baseline = JSON.stringify(hist.present);
+      select(null);
+      planFit(false); if (G) G.fitBox = null;
+      printUI.area.value = '';
+      loadMsg('Loaded “' + d.name + '”, ' + d.modules.length + (d.modules.length === 1 ? ' module.' : ' modules.') + ' Undo brings back the one before.', '');
+      persist();
+    }
+
+    /* ---------- export ---------- */
+    var dlMode = window.claude && typeof window.claude.use === 'function' ? 'claude' : window.claude ? 'none' : 'anchor', dlApi = null, dlMsg = null, dlBusy = false;
+    var dlPromise = dlMode === 'claude' ? Promise.resolve().then(function () { return window.claude.use('downloads'); }).catch(function () { return null; }) : Promise.resolve(null);
+    dlPromise.then(function (d) { if (dlMode === 'claude') { dlApi = d; if (!d) dlMode = 'none'; syncExport(); } });
+    function setDl(text, cls) { dlMsg = text ? { text: text, cls: cls || '' } : null; syncExport(); }
+    function hasErrors() { return currentWarnings().some(function (w) { return w.level === 'error'; }); }
+    function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'organizer'; }
+    function syncExport() {
+      var parts = partsInfo(), n = parts.length, errs = hasErrors(), text, cls = '';
+      printUI.dl.textContent = n === 1 ? 'Download STL' : 'Download ' + (n ? n + ' ' : '') + 'STLs';
+      printUI.dl.disabled = dlBusy || kstate !== 'ready' || !n || errs || dlMode === 'none' || (!result && !needBuild);
+      if (kstate === 'failed') { text = 'The geometry engine did not start in this browser, so there are no STL files here. Copy the design and open the page in Chrome or Safari, or ask Claude in the chat.'; cls = 'warn'; }
+      else if (errs) { text = 'Overlapping modules can’t be printed. Move them apart first.'; cls = 'err'; }
+      else if (dlMode === 'none') text = 'Downloads aren’t available in this view. Copy the design and ask Claude in the chat for the STL files.';
+      else if (dlMsg) { text = dlMsg.text; cls = dlMsg.cls; }
+      else if (kstate === 'loading') text = 'The geometry engine is starting…';
+      else if (!n) text = 'Add a module to get something to print.';
+      else text = 'One zip with an STL for every part, design.json and assembly notes.';
+      printUI.status.textContent = text; printUI.status.className = 'status' + (cls ? ' ' + cls : '');
+    }
+    function download() {
+      if (dlBusy || !kernel) return;
+      if (needBuild || !resultCurrent()) runBuild();
+      if (!resultCurrent() || hasErrors()) { syncExport(); return; }
+      var d = design(), sz = result.analysis.size, name = slug(d.name) + '-' + Math.round(sz.w) + 'x' + Math.round(sz.d) + 'x' + Math.round(sz.h) + '.zip', blob;
+      try { blob = new Blob([kernel.zip(kernel.exportFiles(result, d))], { type: 'application/zip' }); }
+      catch (e) { if (window.console && console.warn) console.warn('Modular builder: export failed.', e); setDl('Something went wrong making the files. Copy the design and ask Claude in the chat for the STL files.', 'err'); return; }
+      if (dlMode === 'anchor') {
+        try {
+          var url = URL.createObjectURL(blob), a = document.createElement('a');
+          a.href = url; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+          setDl('Saved ' + name + '. If nothing downloaded, copy the design and ask Claude in the chat for the STL files.');
+        } catch (e) { setDl('This browser would not save the file. Copy the design and ask Claude in the chat for the STL files.', 'err'); }
+        return;
+      }
+      dlBusy = true; setDl('Preparing ' + name + '…');
+      dlPromise.then(function (api) {
+        if (!api) { dlMode = 'none'; return; }
+        return api.save({ filename: name, data: blob }).then(function () {
+          setDl('Saved ' + name + '. Unzip it to get the STL files and the assembly notes.');
+        }, function (err) {
+          var c = err && err.code;
+          if (c === 'declined') setDl('Download cancelled.');
+          else if (c === 'rate_limited') setDl('Another download prompt is open. Try again in a moment.', 'warn');
+          else if (c === 'extension_not_enabled') setDl('Zip downloads are switched off in this view. Copy the design and ask Claude in the chat for the STL files.', 'warn');
+          else if (c === 'too_large') setDl('The zip is too big to save here. Try fewer modules at a time.', 'warn');
+          else if (c === 'unavailable' || c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed') { dlMode = 'none'; setDl(''); }
+          else setDl('The download didn’t go through here. Copy the design and ask Claude in the chat for the STL files.', 'warn');
+        });
+      }).then(function () { dlBusy = false; syncExport(); }, function () { dlBusy = false; setDl('Something went wrong saving the file.', 'err'); });
+    }
+    function copyDesign() {
+      var text = C.serialize(design()), btn = printUI.copy;
+      function done(ok) {
+        btn.textContent = ok ? 'Copied' : 'Select below';
+        setTimeout(function () { btn.textContent = 'Copy design'; }, 1800);
+        if (!ok) {
+          printUI.area.value = text;
+          try { printUI.area.focus({ preventScroll: false }); printUI.area.select(); printUI.area.setSelectionRange(0, text.length); } catch (e) {}
+          loadMsg('Copying is blocked here: the design is selected in the box above. Copy it from there.', 'warn');
+        } else loadMsg('Design copied. Paste it here later, or into the chat with Claude.', '');
+      }
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no clipboard');
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      } catch (e) { done(false); }
+    }
+
+    /* ---------- tabs, sheet, dialog ---------- */
+    var TABS = ['module', 'style', 'print'];
+    function setTab(id) {
+      if (TABS.indexOf(id) < 0) id = 'module';
+      var changed = ui.tab !== id;
+      ui.tab = id;
+      TABS.forEach(function (t) {
+        $('tab-' + t).setAttribute('aria-selected', String(t === id));
+        $('tab-' + t).tabIndex = t === id ? 0 : -1;
+        $('tp-' + t).hidden = t !== id;
+      });
+      if (changed) $('scroll').scrollTop = 0;
+      if (ui.sheet === 'min' && phoneMQ.matches && changed) setSheet('mid');
+      syncSelection(); persist();
+    }
+    TABS.forEach(function (t, i) {
+      var el = $('tab-' + t);
+      el.addEventListener('click', function () { setTab(t); if (ui.sheet === 'min' && phoneMQ.matches) setSheet('mid'); });
+      el.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        var n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
+        setTab(n); $('tab-' + n).focus(); e.preventDefault();
+      });
+    });
+    function setSheet(s) {
+      ui.sheet = s; app.dataset.sheet = s; panel.style.height = '';
+      $('grab').setAttribute('aria-expanded', String(s !== 'min'));
+      $('grab').setAttribute('aria-label', s === 'max' ? 'Make the panel smaller' : 'Make the panel bigger');
+      persist();
+    }
+    (function sheetDrag() {
+      var g = $('grab'), st = null;
+      g.addEventListener('pointerdown', function (e) {
+        if (!phoneMQ.matches) return;
+        st = { y: e.clientY, h0: panel.getBoundingClientRect().height, moved: false, id: e.pointerId };
+        try { g.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
+      });
+      g.addEventListener('pointermove', function (e) {
+        if (!st || e.pointerId !== st.id) return;
+        var dy = e.clientY - st.y;
+        if (!st.moved && Math.abs(dy) < 6) return;
+        st.moved = true; panel.classList.add('dragging');
+        panel.style.height = clamp(st.h0 - dy, 70, window.innerHeight - 120) + 'px';
+      });
+      function up(e) {
+        if (!st || e.pointerId !== st.id) return;
+        var moved = st.moved, hgt = panel.getBoundingClientRect().height, vh = window.innerHeight;
+        st = null; panel.classList.remove('dragging');
+        if (!moved) { setSheet(ui.sheet === 'min' ? 'mid' : ui.sheet === 'mid' ? 'max' : 'mid'); return; }
+        var snaps = [['min', 84], ['mid', vh * 0.46], ['max', vh * 0.76]], best = snaps[1];
+        snaps.forEach(function (s) { if (Math.abs(s[1] - hgt) < Math.abs(best[1] - hgt)) best = s; });
+        setSheet(best[0]);
+      }
+      g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+      g.addEventListener('click', function (e) { if (e.detail === 0) setSheet(ui.sheet === 'max' ? 'mid' : 'max'); });   // keyboard
+    })();
+    var dlgOk = null, dlgReturn = null;
+    function ask(title, text, okLabel, onOk) {
+      dlgOk = onOk; dlgReturn = document.activeElement;
+      $('dlgTitle').textContent = title; $('dlgText').textContent = text; $('dlgOk').textContent = okLabel || 'OK';
+      $('scrim').hidden = false; $('dlgCancel').focus();
+    }
+    function closeDialog(ok) {
+      var fn = dlgOk; dlgOk = null; $('scrim').hidden = true;
+      try { if (dlgReturn && dlgReturn.focus) dlgReturn.focus(); } catch (e) {}
+      if (ok && fn) fn();
+    }
+    $('dlgOk').addEventListener('click', function () { closeDialog(true); });
+    $('dlgCancel').addEventListener('click', function () { closeDialog(false); });
+    $('scrim').addEventListener('click', function (e) { if (e.target === $('scrim')) closeDialog(false); });
+    $('scrim').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); closeDialog(false); }
+      else if (e.key === 'Tab') { var a = $('dlgCancel'), b = $('dlgOk'); if (document.activeElement === (e.shiftKey ? a : b)) { e.preventDefault(); (e.shiftKey ? b : a).focus(); } }
+    });
+
+    /* ---------- keyboard ---------- */
+    document.addEventListener('keydown', function (e) {
+      if (!$('scrim').hidden) return;
+      var t = e.target, mod = e.metaKey || e.ctrlKey, k = e.key;
+      if (isTextField(t)) { if (k === 'Escape' && t !== printUI.area) t.blur(); return; }
+      if (mod && !e.altKey && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (mod && !e.altKey && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); return; }
+      if (mod || e.altKey) return;
+      var onRange = t && t.tagName === 'INPUT' && t.type === 'range', onTab = t && t.getAttribute && t.getAttribute('role') === 'tab';
+      if (k === 'Escape') { if (adding) { adding = false; syncModuleTab(); } else if (sel) select(null); return; }
+      if (!sel) return;
+      if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
+      if (k.indexOf('Arrow') === 0) {
+        if (onRange || onTab) return;
+        e.preventDefault();
+        var dx = k === 'ArrowLeft' ? -1 : k === 'ArrowRight' ? 1 : 0, dy = k === 'ArrowUp' ? 1 : k === 'ArrowDown' ? -1 : 0, n = e.shiftKey ? 5 : 1;
+        apply(E.nudge(design(), sel, dx * n, dy * n));
+        return;
+      }
+      if (k === 'r' || k === 'R') { e.preventDefault(); apply(E.rotate(design(), sel, e.shiftKey ? -1 : 1)); return; }
+      if (k === 'd' || k === 'D') { e.preventDefault(); var r = apply(E.duplicate(design(), sel)); if (r.ok) select(r.id); }
+    });
+
+    /* ---------- frame loop, resizing, theme ---------- */
+    var lastT = performance.now(), busyOn = false;
+    function loop(now) {
+      requestAnimationFrame(loop);
+      var dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+      var want = kstate === 'ready' && needBuild;
+      if (want !== busyOn) { busyOn = want; $('busy').classList.toggle('on', want); }
+      if (want && now >= buildAt && !(gesture && (gesture.type === 'move' || gesture.type === 'resize'))) runBuild();
+      tick3D(now, dt);
+      tickPlan(now);
+    }
+    function onResize() {
+      app.classList.toggle('short', stage.clientHeight < 340);
+      resize3D();
+      if (plan.auto && !gesture) planFit(true);
+      planDirty = true; warnSig = ''; syncHUD();
+    }
+    if (window.ResizeObserver) { var ro = new ResizeObserver(onResize); ro.observe(stage); ro.observe($('hud')); }
+    else window.addEventListener('resize', onResize);
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      if (mq.addEventListener) mq.addEventListener('change', applyTheme); else if (mq.addListener) mq.addListener(applyTheme);
+    }
+    new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.addEventListener('pagehide', saveNow);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') saveNow(); });
+
+    /* ---------- hooks for the test scripts in scripts/dev (read-only views, plus select) ---------- */
+    window.__builder = {
+      get ready() { return ready && !needBuild && !draft; },
+      design: function () { return C.clone(hist.present); },
+      select: function (id) { select(id, { tab: true }); },
+      snapshot: function () {
+        var A = cur();
+        return { sel: sel, flagged: flagged.slice(), adding: adding, view: ui.view, tab: ui.tab, sheet: ui.sheet, kernel: kstate, stub: !!(kernel && kernel.stub),
+          gl: !!G, noGL: noGL, builds: builds, canUndo: E.history.canUndo(hist), canRedo: E.history.canRedo(hist), explode: ui.explode, drawers: ui.drawers,
+          labels: ui.labels, colorEach: ui.colorEach, color: ui.color, dlMode: dlMode, edited: edited(), needBuild: needBuild, draft: !!draft,
+          warnings: currentWarnings(), modules: A.modules.map(function (m) { return { id: m.id, name: m.name, type: m.type, x: m.x, y: m.y, w: m.w, d: m.d, h: m.h, rot: m.rot, params: m.params, warnings: m.warnings }; }),
+          parts: result ? result.parts.map(function (p) { var pv = G && G.views[p.id]; return { id: p.id, moduleId: p.moduleId, role: p.role, key: p.key, cur: pv && pv.cur, tgt: pv && pv.tgt, slide: p.slide }; }) : [],
+          geo: G ? { made: G.geoMade, kept: G.geoKept, views: Object.keys(G.views).length, tagsShown: G.tags.filter(function (t) { return !t.el.hidden; }).length } : null,
+          plan: { k: plan.k, cx: plan.cx, cy: plan.cy, auto: plan.auto }, lastBuildMs: lastBuildMs };
+      },
+      pickAt: function (x, y) { return pick3D(x, y); },
+      planRect: function (id) {     // the module's rectangle on screen in the plan, in client pixels
+        var M = cur().byId[id], r = planEl.getBoundingClientRect();
+        if (!M) return null;
+        var a = toScreen(M.x, M.y), b = toScreen(M.x + M.w, M.y + M.d);
+        return { x0: r.left + a[0], x1: r.left + b[0], y0: r.top + b[1], y1: r.top + a[1], cx: r.left + (a[0] + b[0]) / 2, cy: r.top + (a[1] + b[1]) / 2, k: plan.k };
+      },
+      screenOf: function (id) {     // a point on the module's top in the 3D view, in client pixels
+        if (!G || !result) return null;
+        var body = bodyPart(id), pv = body && G.views[body.id];
+        if (!pv) return null;
+        var bb = body.bbox, v = new THREE.Vector3((bb.min[0] + bb.max[0]) / 2, bb.min[1] + (bb.max[1] - bb.min[1]) * 0.3, bb.max[2] * 0.5 + 0.5);
+        v.x += pv.cur[0]; v.y += pv.cur[1]; v.z += pv.cur[2];
+        G.world.updateMatrixWorld(true); G.world.localToWorld(v); v.project(G.camera);
+        var r = canvas.getBoundingClientRect();
+        return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height, picked: pick3D(r.left + (v.x * 0.5 + 0.5) * r.width, r.top + (-v.y * 0.5 + 0.5) * r.height) };
+      }
+    };
+
+    /* ---------- start ---------- */
+    init3D();
+    setSheet(ui.sheet);
+    setTab(ui.tab);
+    setView(ui.view);
+    syncAll(); syncVeil();
+    resize3D();
+    planFit(true);
+    applyTheme();
+    loadKernel();
+    requestAnimationFrame(loop);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+</body>
+</html>

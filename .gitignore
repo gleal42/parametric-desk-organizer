@@ -1,3 +1,4 @@
 node_modules/
 *.zip
 out/
+scripts/dev/__pycache__/

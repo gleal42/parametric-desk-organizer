@@ -225,6 +225,26 @@
         var odd = stag && r % 2 === 1, n = odd ? nx - 1 : nx;
         for (var c = 0; c < n; c++) holes.push({ x: cx + (c - (n - 1) / 2) * pitchX, y: cy + (r - (ny - 1) / 2) * pitchY, sx: sx, sy: sy });
       }
+      // a hole that would come closer than the wall to a rounded outer corner is left out
+      var cl = M.cornersL || {}, corners = [[cl.fl, 0, 0, 1, 1, Math.min(i.front, i.left)], [cl.fr, M.wL, 0, -1, 1, Math.min(i.front, i.right)],
+        [cl.br, M.wL, M.dL, -1, -1, Math.min(i.back, i.right)], [cl.bl, 0, M.dL, 1, -1, Math.min(i.back, i.left)]];
+      function clearOfCorners(o) {
+        var hx = o.sx / 2 + 0.6, hy = o.sy / 2 + 0.6, k, q;      // with the entry chamfer
+        for (k = 0; k < 4; k++) {
+          var rc = corners[k][0] || 0, sxk = corners[k][3], syk = corners[k][4];
+          if (!(rc > 0)) continue;
+          var ccx = corners[k][1] + sxk * rc, ccy = corners[k][2] + syk * rc, lim = rc - corners[k][5];
+          if (sxk * (o.x - sxk * hx - ccx) >= 0 || syk * (o.y - syk * hy - ccy) >= 0) continue;     // nowhere near this corner
+          for (q = 0; q < 64; q++) {
+            var px, py, a = q / 64 * 2 * Math.PI;
+            if (p.hole === 'round') { px = o.x + hx * Math.cos(a); py = o.y + hy * Math.sin(a); }
+            else { var t = (q % 16) / 16, sd = Math.floor(q / 16); px = o.x + hx * [2 * t - 1, 1, 1 - 2 * t, -1][sd]; py = o.y + hy * [-1, 2 * t - 1, 1, 1 - 2 * t][sd]; }
+            if (sxk * (px - ccx) < 0 && syk * (py - ccy) < 0 && Math.hypot(px - ccx, py - ccy) > lim + 1e-6) return false;
+          }
+        }
+        return true;
+      }
+      holes = holes.filter(clearOfCorners);
       // a sloped top: every hole keeps the same depth below the surface right above its front edge
       return {
         inner: { x0: x0, x1: x1, y0: y0, y1: y1 }, backH: M.h, frontH: fh, sloped: fh < M.h - 1e-9,
@@ -233,6 +253,7 @@
     },
     info: function (M, S) {
       var g = this.derive(M, S), p = M.params, n = g.holes.length;
+      if (!n) return 'No room for a hole of this size.';
       var what = p.hole === 'round' ? 'Ø' + r1(p.size) + ' mm hole' : p.hole === 'square' ? r1(p.size) + ' mm square hole' : r1(g.holes[0].sx) + ' × ' + r1(p.size) + ' mm slot';
       return n + ' ' + what + (n === 1 ? '' : 's') + '.';
     }
@@ -302,8 +323,10 @@
         bays.push({ index: k, x0: x0, x1: x1, y0: 0, y1: y1, z0: z0, z1: z0 + bayH,
           drawer: p.drawers ? { x0: x0 + g, x1: x1 - g, y0: 0, y1: y1 - g, z0: z0 + 0.2, z1: z0 + bayH - g - 0.2 } : null });
       }
-      var dw = p.drawers ? bays[0].drawer : null;
-      return { bays: bays, bayW: x1 - x0, bayD: y1, bayH: bayH, roof: roof, span: x1 - x0,
+      var dw = p.drawers ? bays[0].drawer : null, cl = M.cornersL || {};
+      // a rounded back corner of the shell rounds the back of each bay too, so the wall keeps its thickness
+      var backR = { left: Math.max(0, (cl.bl || 0) - Math.min(i.back, i.left)), right: Math.max(0, (cl.br || 0) - Math.min(i.back, i.right)) };
+      return { bays: bays, bayW: x1 - x0, bayD: y1, bayH: bayH, roof: roof, span: x1 - x0, backR: backR,
         drawerInner: dw ? { w: dw.x1 - dw.x0 - 2 * S.drawerWall, d: dw.y1 - dw.y0 - 2 * S.drawerWall, h: dw.z1 - dw.z0 - S.drawerWall } : null };
     },
     info: function (M, S) {

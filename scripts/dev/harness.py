@@ -47,8 +47,8 @@ def fonts():
 
 
 class Session:
-    def __init__(self, size='phone', dark=False, cdn='local', reduced_motion=False, init=None, storage=True):
-        self.size, self.dark, self.cdn, self.init = size, dark, cdn, init
+    def __init__(self, size='phone', dark=False, cdn='local', reduced_motion=False, init=None, storage=True, ignore=()):
+        self.size, self.dark, self.cdn, self.init, self.ignore = size, dark, cdn, init, tuple(ignore)
         self.reduced_motion, self.storage = reduced_motion, storage
         self.errors, self.logs = [], []
 
@@ -84,7 +84,7 @@ class Session:
 
         page.route(lambda u: u.startswith('http'), route)
         page.on('console', lambda m: (self.logs.append('[%s] %s' % (m.type, m.text[:400])),
-                                      self.errors.append('console: ' + m.text[:400]) if m.type == 'error' else None))
+                                      self.errors.append('console: ' + m.text[:400]) if m.type == 'error' and not any(i in m.text for i in self.ignore) else None))
         page.on('pageerror', lambda e: self.errors.append('pageerror: ' + str(e)[:600]))
         if self.init:
             page.add_init_script(self.init)
