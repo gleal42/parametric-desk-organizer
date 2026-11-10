@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Modular Desk Organizer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Familjen+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* The modular builder. Same visual language as the classic viewer (src/template.html): a full-bleed stage beside
+   a slim instrument panel, right sidebar on wide screens, bottom sheet on phones. The stage shows either the 3D
+   view (canvas) or the plan editor (svg). */
+:root {
+  --stage: #E6EAE4;      /* studio backdrop, faint sage */
+  --stage-hi: #F3F5F1;
+  --stage-lo: #D5DBD3;
+  --panel: #F6F7F4;
+  --ink: #1B2420;
+  --muted: #5E6A64;
+  --line: #CDD5CE;
+  --accent: #2C6A56;     /* moss: active controls, selection */
+  --accent-soft: #DDE9E3;
+  --accent-ink: #FFFFFF;
+  --chip: rgba(246, 247, 244, 0.9);
+  --ok: #2F7A4E;
+  --warn: #B4581A;
+  --warn-soft: #F6E6DA;
+  --err: #B3362B;        /* overlaps: the one thing that stops a download */
+  --err-soft: #F8E2DE;
+  --err-ink: #FFFFFF;
+  --mod: #DCE5DE;        /* a module on the plan */
+  --mod-line: #6F857A;
+  --grid: rgba(27, 36, 32, 0.07);
+  --grid-hi: rgba(27, 36, 32, 0.13);
+  --shadow-alpha: 0.2;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --stage: #151A18; --stage-hi: #1E2522; --stage-lo: #0D110F;
+    --panel: #19201D; --ink: #E4EAE6; --muted: #98A39D; --line: #2D3632;
+    --accent: #7BC6AC; --accent-soft: #23342D; --accent-ink: #0E1613;
+    --chip: rgba(25, 32, 29, 0.88); --ok: #6FCB95; --warn: #E8A063; --warn-soft: #3A2A1E;
+    --err: #F08B7D; --err-soft: #42231F; --err-ink: #1D0C09;
+    --mod: #26312C; --mod-line: #6E8178; --grid: rgba(228, 234, 230, 0.06); --grid-hi: rgba(228, 234, 230, 0.12);
+    --shadow-alpha: 0.5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --stage: #151A18; --stage-hi: #1E2522; --stage-lo: #0D110F;
+  --panel: #19201D; --ink: #E4EAE6; --muted: #98A39D; --line: #2D3632;
+  --accent: #7BC6AC; --accent-soft: #23342D; --accent-ink: #0E1613;
+  --chip: rgba(25, 32, 29, 0.88); --ok: #6FCB95; --warn: #E8A063; --warn-soft: #3A2A1E;
+  --err: #F08B7D; --err-soft: #42231F; --err-ink: #1D0C09;
+  --mod: #26312C; --mod-line: #6E8178; --grid: rgba(228, 234, 230, 0.06); --grid-hi: rgba(228, 234, 230, 0.12);
+  --shadow-alpha: 0.5;
+  color-scheme: dark;
+}
+
+html { height: 100%; box-sizing: border-box; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none;
+  background: var(--stage); color: var(--ink);
+  font: 400 14px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+button:disabled { cursor: default; opacity: 0.5; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+svg.ic { width: 20px; height: 20px; display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 356px; position: relative; }
+
+/* ---------- stage ---------- */
+.stage {
+  position: relative; min-width: 0; min-height: 0; overflow: hidden;
+  background: radial-gradient(120% 95% at 50% 36%, var(--stage-hi) 0%, var(--stage) 52%, var(--stage-lo) 100%);
+}
+#c, .plan { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; -webkit-user-select: none; user-select: none; }
+.app[data-view="plan"] #c, .app[data-view="plan"] .labels, .app[data-view="plan"] .veil, .app[data-view="plan"] .only3d { display: none; }
+.app[data-view="3d"] .plan { display: none; }
+.plan { cursor: grab; }
+.plan.moving { cursor: grabbing; }
+.plan:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+
+.hud {
+  position: absolute; top: calc(var(--safe-t) + 12px); left: max(16px, var(--safe-l)); right: calc(max(16px, var(--safe-r)) + 124px);
+  pointer-events: none; display: grid; gap: 3px; justify-items: start;
+}
+.hud > * { pointer-events: auto; }
+.title {
+  width: 100%; margin: -3px 0 -2px -6px; padding: 2px 6px; border: 1px solid transparent; border-radius: 7px; background: transparent;
+  font: 700 23px/1.1 var(--font-display); letter-spacing: -0.015em; text-overflow: ellipsis; min-width: 0;
+}
+.title:hover { border-color: var(--line); }
+.title:focus { border-color: var(--accent); background: var(--chip); outline: none; }
+.meta { font: 400 12px/1.3 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; pointer-events: none; }
+.fit {
+  margin-top: 5px; display: inline-flex; align-items: center; gap: 7px; max-width: calc(100% + 60px); min-height: 28px; position: relative;
+  padding: 4px 11px 4px 9px; border-radius: 999px; border: 1px solid var(--line); text-align: left;
+  background: var(--chip); font: 500 12px/1.2 var(--font-ui); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.fit::after { content: ""; position: absolute; inset: -7px -4px; }      /* a taller target for thumbs */
+.fit i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.fit.warn i { background: var(--warn); }
+.fit.err { border-color: var(--err); background: var(--err); color: var(--err-ink); }
+.fit.err i { background: var(--err-ink); }
+.fit.idle i { background: var(--muted); }
+
+.warns { display: grid; gap: 4px; justify-items: start; margin-top: 4px; width: calc(100% + 60px); max-height: 38vh; overflow-y: auto; pointer-events: none; }
+.warns > * { pointer-events: auto; }
+.wrow {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 7px; align-items: start; max-width: 100%; min-height: 30px; text-align: left;
+  padding: 6px 10px 6px 8px; border-radius: 9px; border: 1px solid var(--line); background: var(--chip);
+  font: 400 12px/1.3 var(--font-ui); color: var(--ink); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.wrow svg.ic { width: 16px; height: 16px; color: var(--muted); margin-top: -0.5px; }
+.wrow.warn { border-color: var(--warn); background: var(--warn-soft); }
+.wrow.warn svg.ic { color: var(--warn); }
+.wrow.error { border-color: var(--err); background: var(--err); color: var(--err-ink); font-weight: 600; box-shadow: 0 4px 14px rgba(179, 54, 43, 0.28); }
+.wrow.error svg.ic { color: var(--err-ink); }
+.wfix { margin-left: 23px; padding: 6px 12px; min-height: 32px; border-radius: 8px; border: 1px solid var(--err); background: var(--chip); color: var(--err); font: 600 12px/1.2 var(--font-ui); }
+.wmore { padding: 5px 10px; min-height: 28px; border-radius: 999px; border: 1px solid var(--line); background: var(--chip); font: 500 12px/1.2 var(--font-ui); color: var(--muted); }
+
+.views {
+  position: absolute; top: calc(var(--safe-t) + 12px); right: max(12px, var(--safe-r));
+  display: flex; gap: 3px; padding: 3px; border-radius: 11px;
+  background: var(--chip); border: 1px solid var(--line); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.views button {
+  border: 0; background: transparent; border-radius: 8px; padding: 0 13px; min-width: 50px; min-height: 36px;
+  font: 600 13px/1 var(--font-ui); color: var(--muted);
+}
+.views button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.tools { position: absolute; top: calc(var(--safe-t) + 64px); right: max(12px, var(--safe-r)); display: grid; gap: 6px; }
+.undo { position: absolute; left: max(12px, var(--safe-l)); bottom: 12px; display: flex; gap: 6px; }
+.tool {
+  width: 42px; height: 42px; display: grid; place-items: center; padding: 0; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--chip); color: var(--ink); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.tool[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tool:disabled { opacity: 0.38; }
+
+.hint {
+  position: absolute; left: calc(max(12px, var(--safe-l)) + 102px); right: 96px; bottom: 25px; margin: 0;
+  font: 400 12px/1.3 var(--font-ui); color: var(--muted); pointer-events: none; transition: opacity .6s;
+}
+.hint.gone { opacity: 0; }
+.busy {
+  position: absolute; right: max(14px, var(--safe-r)); bottom: 25px; margin: 0;
+  font: 500 12px/1.3 var(--font-mono); color: var(--muted); opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.busy.on { opacity: 1; }
+.toast {
+  position: absolute; left: 50%; bottom: 64px; transform: translate(-50%, 8px); max-width: min(86%, 420px); margin: 0;
+  padding: 8px 13px; border-radius: 10px; background: var(--ink); color: var(--panel); font: 500 12.5px/1.35 var(--font-ui); text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.tag {
+  position: absolute; left: 0; top: 0; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis;
+  padding: 3px 8px 4px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--chip); color: var(--ink); font: 600 12px/1.2 var(--font-ui);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); will-change: transform;
+}
+.tag.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tag.flag { background: var(--warn-soft); border-color: var(--warn); color: var(--ink); }
+.tag.bad { background: var(--err); border-color: var(--err); color: var(--err-ink); }
+
+.veil { position: absolute; inset: 0; display: grid; place-items: center; padding: 96px 28px 72px; text-align: center; pointer-events: none; }
+.veil-box { display: grid; gap: 12px; justify-items: center; max-width: 340px; pointer-events: auto; }
+.veil p { margin: 0; font: 400 13.5px/1.5 var(--font-ui); color: var(--muted); text-wrap: balance; }
+.veil p b { display: block; margin-bottom: 4px; font: 600 15px/1.3 var(--font-ui); color: var(--ink); }
+.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 1.3s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+
+/* ---------- the plan (svg) ---------- */
+.pl-grid { fill: none; stroke: var(--grid); stroke-width: 1; }
+.pl-grid.hi { stroke: var(--grid-hi); }
+.pl-plate { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 5; opacity: 0.55; }
+.pl-note { font: 400 10.5px/1 var(--font-mono); fill: var(--muted); }
+.pl-mod { fill: var(--mod); stroke: var(--mod-line); stroke-width: 1.4; stroke-linejoin: round; }
+.pl-mod.flag { stroke: var(--warn); stroke-width: 2; }
+.pl-mod.bad { stroke: var(--err); stroke-width: 2.2; }
+.pl-mod.sel { stroke: var(--accent); stroke-width: 2.6; }
+.pl-mod.drag { fill-opacity: 0.86; }
+.pl-mod.invalid { stroke: var(--err); stroke-width: 2.4; stroke-dasharray: 6 4; }
+.pl-front { fill: none; stroke: var(--mod-line); stroke-width: 3; stroke-linecap: round; opacity: 0.8; }
+.pl-arrow { fill: var(--mod-line); opacity: 0.85; }
+.pl-name { font: 600 12px/1 var(--font-ui); fill: var(--ink); text-anchor: middle; }
+.pl-size { font: 400 10.5px/1 var(--font-mono); fill: var(--muted); text-anchor: middle; }
+.pl-tab { fill: var(--ink); opacity: 0.62; }
+.pl-glue { stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1 6; opacity: 0.55; fill: none; }
+.pl-nojoint { stroke: var(--warn); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 2 5; fill: none; }
+.pl-blocked { stroke: var(--warn); stroke-width: 4; stroke-linecap: round; fill: none; }
+.pl-overlap { fill: var(--err); fill-opacity: 0.28; stroke: var(--err); stroke-width: 1.5; }
+.pl-hatch { stroke: var(--err); stroke-width: 1.4; }
+.pl-ghost { fill: var(--accent); fill-opacity: 0.1; stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.pl-guide { stroke: var(--accent); stroke-width: 1; opacity: 0.9; }
+.pl-handle { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
+.pl-handle.on { fill: var(--accent); }
+.pl-dim { font: 500 11px/1 var(--font-mono); fill: var(--accent-ink); text-anchor: middle; }
+.pl-dimbox { fill: var(--accent); }
+.pl-empty { font: 500 13px/1 var(--font-ui); fill: var(--muted); text-anchor: middle; }
+
+/* ---------- panel ---------- */
+.panel { min-height: 0; min-width: 0; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); }
+.grab { display: none; }
+.tabs {
+  flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: 11px; border: 1px solid var(--line);
+  margin: calc(var(--safe-t) + 12px) max(18px, var(--safe-r)) 0 18px;
+}
+.tab {
+  border: 0; background: transparent; border-radius: 8px; padding: 0 2px; min-height: 36px;
+  font: 600 13px/1.15 var(--font-ui); color: var(--muted); white-space: nowrap;
+}
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.tabpanel { display: grid; gap: 18px; padding: 16px max(18px, var(--safe-r)) calc(var(--safe-b) + 28px) 18px; align-content: start; }
+.sec { display: grid; gap: 10px; min-width: 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.sec h2, .sec h3 { margin: 0; font: 600 11px/1.2 var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.sec-head span { font: 500 12.5px/1.2 var(--font-ui); color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead { margin: 0; font: 400 13px/1.45 var(--font-ui); color: var(--muted); }
+
+.slider { display: grid; gap: 1px; min-width: 0; }
+.slider label, .field-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font: 500 13px/1.2 var(--font-ui); }
+.slider output, .field-label output { font: 400 12.5px/1.2 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.track { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
+.step {
+  width: 40px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--line); background: transparent;
+  font: 400 17px/1 var(--font-mono); color: var(--muted);
+}
+.step:active { background: var(--accent-soft); color: var(--ink); }
+input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); height: 40px; touch-action: pan-y; background: transparent; }
+.help { margin: 0; font: 400 12px/1.4 var(--font-ui); color: var(--muted); }
+.field { display: grid; gap: 6px; min-width: 0; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; padding: 3px; border-radius: 10px; border: 1px solid var(--line); }
+.seg button {
+  border: 0; background: transparent; border-radius: 7px; padding: 0 4px; min-height: 36px;
+  font: 500 12.5px/1.15 var(--font-ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent); }
+.switch {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; align-items: center; width: 100%; min-height: 40px; padding: 2px 0;
+  border: 0; background: transparent; text-align: left; font: 500 13px/1.25 var(--font-ui);
+}
+.switch small { grid-column: 1; font: 400 12px/1.4 var(--font-ui); color: var(--muted); }
+.switch i { grid-column: 2; grid-row: 1 / span 2; width: 42px; height: 26px; border-radius: 999px; background: var(--line); position: relative; transition: background .15s; }
+.switch i::after {
+  content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--panel); box-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.3); transition: transform .15s;
+}
+.switch[aria-checked="true"] i { background: var(--accent); }
+.switch[aria-checked="true"] i::after { transform: translateX(16px); }
+.info {
+  margin: 0; padding: 9px 11px; border-radius: 8px; background: var(--stage);
+  font: 400 12.5px/1.45 var(--font-ui); color: var(--muted);
+}
+.info.warn { background: var(--warn-soft); color: var(--ink); }
+.info.err { background: var(--err-soft); color: var(--ink); }
+
+.btn {
+  border-radius: 10px; padding: 0 14px; min-height: 40px; font: 600 13.5px/1.15 var(--font-ui);
+  border: 1px solid var(--line); background: transparent; white-space: nowrap;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.small { min-height: 36px; padding: 0 12px; font-size: 12.5px; border-color: var(--accent); color: var(--accent); }
+.btn.danger { background: var(--err); border-color: var(--err); color: var(--err-ink); }
+.status { margin: 0; font: 400 12px/1.4 var(--font-ui); color: var(--muted); min-height: 1.4em; }
+.status.warn { color: var(--warn); }
+.status.err { color: var(--err); font-weight: 500; }
+
+/* module tab */
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.card {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 1px 9px; align-items: start; align-content: center; text-align: left;
+  min-height: 60px; padding: 8px 9px; border-radius: 11px; border: 1px solid var(--line); background: transparent;
+}
+.card:active { background: var(--accent-soft); border-color: var(--accent); }
+.card svg { grid-row: 1 / span 2; align-self: center; width: 26px; height: 26px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.card b { font: 600 13px/1.2 var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card small { font: 400 11.5px/1.25 var(--font-ui); color: var(--muted); }
+.card.tpl { grid-template-columns: 44px minmax(0, 1fr); }
+.card.tpl svg { width: 44px; height: 36px; stroke-width: 1.2; }
+.card.tpl svg rect { fill: var(--mod); stroke: var(--mod-line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipbtn {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px; padding: 0 12px 0 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; font: 500 12.5px/1.2 var(--font-ui);
+}
+.chipbtn i { width: 9px; height: 9px; border-radius: 3px; background: var(--mod-line); flex: none; }
+.chipbtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mhead { display: grid; grid-template-columns: 30px minmax(0, 1fr) 40px; gap: 8px; align-items: center; }
+.mhead > svg { width: 28px; height: 28px; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.text {
+  width: 100%; min-width: 0; height: 40px; padding: 0 11px; border-radius: 10px; border: 1px solid var(--line); background: transparent;
+  font: 600 15px/1.2 var(--font-ui);
+}
+.text:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 1px var(--accent); }
+.iconbtn { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); }
+.acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.act {
+  display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 54px; padding: 6px 2px; border-radius: 11px;
+  border: 1px solid var(--line); background: transparent; font: 500 11.5px/1.15 var(--font-ui); white-space: nowrap;
+}
+.act:active { background: var(--accent-soft); }
+.act.del { color: var(--err); }
+.nudge { display: grid; grid-template-columns: repeat(4, 44px) minmax(0, 1fr); gap: 6px; align-items: center; }
+.nudge .iconbtn { width: 44px; color: var(--ink); }
+.nudge output { justify-self: end; font: 400 12px/1.3 var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.backrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.backrow b { font: 600 14px/1.25 var(--font-ui); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* style tab */
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch {
+  width: 40px; height: 40px; border-radius: 50%; padding: 0; background: transparent; border: 0; display: grid; place-items: center;
+}
+.swatch i { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.12); }
+.swatch[aria-pressed="true"] i { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* print tab */
+.printers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.printer {
+  display: grid; gap: 2px; text-align: left; min-height: 48px; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: transparent;
+}
+.printer b { font: 600 12.5px/1.2 var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.printer small { font: 400 11.5px/1.2 var(--font-mono); color: var(--muted); }
+.printer[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.parts { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.part {
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 1px 9px; align-items: center; width: 100%; min-height: 46px; padding: 6px 10px;
+  border-radius: 10px; border: 1px solid var(--line); background: transparent; text-align: left;
+}
+.part i { grid-row: 1 / span 2; width: 10px; height: 10px; border-radius: 3px; background: var(--mod-line); }
+.part b { font: 600 13px/1.2 var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.part small { grid-column: 2; font: 400 11.5px/1.2 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.part em { grid-column: 3; grid-row: 1 / span 2; font: 500 12px/1.2 var(--font-ui); font-style: normal; color: var(--ok); white-space: nowrap; }
+.part.warn em { color: var(--warn); }
+.part.warn { border-color: var(--warn); }
+.part[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.area {
+  width: 100%; min-height: 84px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--stage); resize: vertical;
+  font: 400 12px/1.45 var(--font-mono); color: var(--ink);
+}
+.area:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 1px var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filebtn { position: relative; display: inline-grid; place-items: center; overflow: hidden; }
+.filebtn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.export {
+  position: sticky; bottom: 0; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  margin: 0 -18px calc(-1 * (var(--safe-b) + 28px)); padding: 12px 18px calc(var(--safe-b) + 14px);
+  background: var(--panel); border-top: 1px solid var(--line);
+}
+.export .status { grid-column: 1 / -1; }
+.foot { margin: 0; font: 400 12px/1.45 var(--font-ui); color: var(--muted); }
+
+/* ---------- in-page dialog ---------- */
+.scrim { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(13, 17, 15, 0.42); }
+.dialog {
+  width: min(100%, 360px); display: grid; gap: 10px; padding: 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+.dialog h2 { margin: 0; font: 700 18px/1.2 var(--font-display); letter-spacing: -0.01em; }
+.dialog p { margin: 0; font: 400 13.5px/1.5 var(--font-ui); color: var(--muted); }
+.dlg-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+
+/* ---------- phones: bottom sheet ---------- */
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .panel {
+    border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-top: -14px; position: relative; z-index: 3;
+    height: 46vh; height: 46dvh; max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.07);
+  }
+  .app[data-sheet="max"] .panel { height: 76vh; height: 76dvh; }
+  .app[data-sheet="min"] .panel { height: calc(84px + var(--safe-b)); }
+  .app[data-sheet="min"] .scroll { visibility: hidden; }
+  .panel.dragging { transition: none; }
+  .grab { display: grid; place-items: center; flex: none; width: 100%; height: 26px; padding: 0; border: 0; background: transparent; touch-action: none; cursor: ns-resize; }
+  .grab i { width: 40px; height: 4px; border-radius: 2px; background: var(--line); }
+  .tabs { margin: 0 max(14px, var(--safe-r)) 0 max(14px, var(--safe-l)); }
+  .tab { min-height: 38px; }
+  .tabpanel { gap: 16px; padding: 14px max(14px, var(--safe-r)) calc(var(--safe-b) + 22px) max(14px, var(--safe-l)); }
+  .export { margin: 0 -14px calc(-1 * (var(--safe-b) + 22px)); padding: 10px 14px calc(var(--safe-b) + 12px); }
+  .hud { right: calc(max(12px, var(--safe-r)) + 118px); left: max(14px, var(--safe-l)); }
+  .title { font-size: 20px; }
+  .undo { bottom: 26px; }
+  .hint, .busy { bottom: 39px; }
+  .toast { bottom: 80px; }
+  .veil { padding-bottom: 96px; }
+}
+@media (min-width: 761px) {
+  .tabs { margin-top: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint, .busy, .toast, .switch i, .switch i::after { transition: none; }
+  .pulse { animation: none; opacity: 0.8; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-view="3d" data-sheet="mid">
+  <section class="stage" id="stage" aria-label="The organizer">
+    <canvas id="c" aria-label="3D view of the organizer. Drag to rotate, tap a module to select it."></canvas>
+    <svg class="plan" id="plan" role="application" tabindex="0" aria-label="Plan of the organizer, seen from above with the front at the bottom. Drag a module to move it, drag the handles of the selected module to resize it."></svg>
+    <div class="labels" id="labels" aria-hidden="true"></div>
+    <div class="veil" id="veil">
+      <div class="veil-box" role="status">
+        <i class="pulse" id="veilDot"></i>
+        <p id="veilText">Starting the geometry engine…</p>
+        <button class="btn small" id="veilBtn" type="button" hidden>Open the plan</button>
+      </div>
+    </div>
+    <header class="hud" id="hud">
+      <input class="title" id="dName" type="text" maxlength="60" value="Modular Desk Organizer" aria-label="Name of this design" autocomplete="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="done">
+      <div class="meta" id="meta">&nbsp;</div>
+      <button class="fit idle" id="fitChip" type="button" aria-label="Print check. Opens the Print tab."><i></i><span id="fitText">Checking the print plate…</span></button>
+      <div class="warns" id="warns" role="region" aria-label="Things to check"></div>
+    </header>
+    <div class="views" role="group" aria-label="View">
+      <button id="view3d" type="button" aria-pressed="true">3D</button>
+      <button id="viewPlan" type="button" aria-pressed="false">Plan</button>
+    </div>
+    <div class="tools" role="toolbar" aria-label="View options" aria-orientation="vertical">
+      <button class="tool only3d" id="tExplode" type="button" aria-pressed="false" aria-label="Show the parts apart" title="Show the parts apart"></button>
+      <button class="tool only3d" id="tDrawers" type="button" aria-pressed="false" aria-label="Pull the drawers open" title="Pull the drawers open" hidden></button>
+      <button class="tool only3d" id="tLabels" type="button" aria-pressed="true" aria-label="Show labels" title="Labels"></button>
+      <button class="tool" id="tFit" type="button" aria-label="Fit everything in view" title="Fit in view"></button>
+    </div>
+    <div class="undo" role="group" aria-label="History">
+      <button class="tool" id="bUndo" type="button" aria-label="Undo" title="Undo" disabled></button>
+      <button class="tool" id="bRedo" type="button" aria-label="Redo" title="Redo" disabled></button>
+    </div>
+    <p class="hint" id="hint">Tap a module to edit it, or add one</p>
+    <p class="busy" id="busy" aria-hidden="true">Rebuilding…</p>
+    <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  </section>
+
+  <aside class="panel" id="panel" aria-label="Design controls">
+    <button class="grab" id="grab" type="button" aria-label="Make the panel smaller or bigger" aria-expanded="true"><i></i></button>
+    <div class="tabs" role="tablist" aria-label="Controls">
+      <button class="tab" role="tab" id="tab-module" aria-controls="tp-module" aria-selected="true" type="button">Module</button>
+      <button class="tab" role="tab" id="tab-style" aria-controls="tp-style" aria-selected="false" tabindex="-1" type="button">Style</button>
+      <button class="tab" role="tab" id="tab-print" aria-controls="tp-print" aria-selected="false" tabindex="-1" type="button">Print</button>
+    </div>
+    <div class="scroll" id="scroll">
+      <div class="tabpanel" id="tp-module" role="tabpanel" aria-labelledby="tab-module"><p class="lead">Loading the catalog…</p></div>
+      <div class="tabpanel" id="tp-style" role="tabpanel" aria-labelledby="tab-style" hidden></div>
+      <div class="tabpanel" id="tp-print" role="tabpanel" aria-labelledby="tab-print" hidden></div>
+    </div>
+  </aside>
+
+  <div class="scrim" id="scrim" hidden>
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgText">
+      <h2 id="dlgTitle"></h2>
+      <p id="dlgText"></p>
+      <div class="dlg-actions">
+        <button class="btn" id="dlgCancel" type="button">Cancel</button>
+        <button class="btn primary" id="dlgOk" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script>
+<script>
+/*__CATALOG__*/
+</script>
+<script>
+/*__LAYOUT__*/
+</script>
+<script>
+/*__EDITOR__*/
+</script>
+<script>
+/*__KERNEL__*/
+</script>
+<script>
+window.__MANIFOLD_WASM_B64__ = "__MANIFOLD_WASM_B64__";
+</script>
+<script type="module">
+/*__MANIFOLD_GLUE__*/
+</script>
+<script>
+/* The builder app. It starts on DOMContentLoaded: by then the catalog, layout, editor and kernel scripts above
+   have run, and so has the Manifold loader (a module script, which is deferred until the document is parsed).
+   Everything here renders from the catalog's schemas, so new presets or parameters need no change in this file. */
+(function () {
+  'use strict';
+  function boot() {
+    var C = window.ModularCatalog, L = window.ModularLayout, E = window.ModularEditor, K = window.ModularKernel;
+    var $ = function (id) { return document.getElementById(id); };
+    var app = $('app'), stage = $('stage'), canvas = $('c'), planEl = $('plan'), labelsEl = $('labels'), panel = $('panel');
+    if (!C || !L || !E) {
+      $('veilDot').hidden = true;
+      $('veilText').textContent = 'The builder could not start because part of the page did not load. Reload it, or ask Claude in the chat to publish it again.';
+      $('tp-module').textContent = '';
+      $('fitText').textContent = 'Not loaded';
+      return;
+    }
+
+    var FILAMENTS = [
+      { id: 'matcha', name: 'Matcha', hex: '#A2B389' },
+      { id: 'ivory', name: 'Ivory', hex: '#ECE6DA' },
+      { id: 'ash', name: 'Ash grey', hex: '#9DA2A1' },
+      { id: 'jeans', name: 'Jeans blue', hex: '#5B7B9D' },
+      { id: 'blush', name: 'Blush', hex: '#E1B2AC' },
+      { id: 'charcoal', name: 'Charcoal', hex: '#35393C' }
+    ];
+    // "Colour each module": easy to tell apart, still looking like filament
+    var TINTS = ['#A2B389', '#E1B2AC', '#5B7B9D', '#E3C16F', '#9DA2A1', '#C98F6E', '#7FB8B0', '#B49BC9', '#ECE6DA', '#6E8B6A'];
+    var KEY = 'modular-organizer-v1';
+    var phoneMQ = window.matchMedia ? window.matchMedia('(max-width: 760px)') : { matches: false };
+    var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    /* ---------- small helpers ---------- */
+    function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+    function n1(x) { return String(Math.round(x * 10) / 10); }
+    function token(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    function decimals(step) { var s = String(step), i = s.indexOf('.'); return i < 0 ? 0 : s.length - i - 1; }
+    function h(tag, attrs, kids) {
+      var el = document.createElement(tag), k;
+      for (k in (attrs || {})) {
+        if (attrs[k] === undefined || attrs[k] === null || attrs[k] === false) continue;
+        if (k === 'class') el.className = attrs[k];
+        else if (k === 'text') el.textContent = attrs[k];
+        else if (k === 'html') el.innerHTML = attrs[k];
+        else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), attrs[k]);
+        else el.setAttribute(k, attrs[k] === true ? '' : attrs[k]);
+      }
+      (kids || []).forEach(function (c) { if (c) el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+      return el;
+    }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    var IC = {
+      undo: '<path d="M7 5 3.5 8.5 7 12"/><path d="M4 8.5h7.5a4.25 4.25 0 0 1 0 8.5H8"/>',
+      redo: '<path d="M13 5l3.5 3.5L13 12"/><path d="M16 8.5H8.5a4.25 4.25 0 0 0 0 8.5H12"/>',
+      explode: '<rect x="7.3" y="7.3" width="5.4" height="5.4" rx="1"/><path d="M5.5 5.5 3 3m0 2.6V3h2.6M14.5 5.5 17 3m-2.6 0H17v2.6M5.5 14.5 3 17m2.6 0H3v-2.6M14.5 14.5 17 17m0-2.6V17h-2.6"/>',
+      drawers: '<path d="M3.5 9V4.6a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1V9"/><path d="M2.5 9.2h15l-1.2 6.4a1 1 0 0 1-1 .8H4.7a1 1 0 0 1-1-.8z"/><path d="M8.3 12.4h3.4M8.3 6.2h3.4"/>',
+      labels: '<path d="M3.5 4.5h6.2l6.8 6.8-5.2 5.2L4.5 9.7z"/><circle cx="7.2" cy="7.8" r="1.1"/>',
+      fit: '<path d="M3.5 7.5v-4h4M12.5 3.5h4v4M16.5 12.5v4h-4M7.5 16.5h-4v-4"/><rect x="7.4" y="7.4" width="5.2" height="5.2" rx="0.8"/>',
+      rotate: '<path d="M16 10.2a6 6 0 1 1-1.9-4.5"/><path d="M14.6 2.4v3.6H11"/>',
+      duplicate: '<rect x="7" y="7" width="9.5" height="9.5" rx="1.6"/><path d="M4.4 13H4a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1h7.5a1 1 0 0 1 1 1v.4"/>',
+      trash: '<path d="M4 6h12M8 6V4.2h4V6M5.5 6l.7 9.5a1 1 0 0 0 1 .9h5.6a1 1 0 0 0 1-.9l.7-9.5M8.5 9v4.5M11.5 9v4.5"/>',
+      plus: '<path d="M10 4.5v11M4.5 10h11"/>',
+      close: '<path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/>',
+      left: '<path d="M12 4.5 6.5 10l5.5 5.5"/>', right: '<path d="M8 4.5l5.5 5.5L8 15.5"/>',
+      up: '<path d="M4.5 12 10 6.5l5.5 5.5"/>', down: '<path d="M4.5 8l5.5 5.5L15.5 8"/>',
+      warn: '<path d="M10 3.2 17.6 16.4H2.4z"/><path d="M10 8.2v3.6M10 14.1v.1"/>',
+      info: '<circle cx="10" cy="10" r="7"/><path d="M10 9.2v4.3M10 6.5v.1"/>'
+    };
+    function icon(name) { return '<svg class="ic" viewBox="0 0 20 20" aria-hidden="true">' + IC[name] + '</svg>'; }
+    var TYPE_IC = {
+      bin: '<path d="M5 6.5v10.3a2.2 2.2 0 0 0 2.2 2.2h9.6a2.2 2.2 0 0 0 2.2-2.2V6.5"/><path d="M3.2 6.5h3.4M17.4 6.5h3.4"/>',
+      block: '<rect x="4" y="10" width="16" height="9.5" rx="1.8"/><path d="M8 10V5.5M12 10V4M16 10V6.5"/>',
+      stand: '<path d="M3.5 19.5h17"/><path d="M9.6 19.5 13.2 5l3.1.8-3.4 13.7"/><path d="M5.5 19.5v-3h4.6"/>',
+      cabinet: '<rect x="4.5" y="4.5" width="15" height="15" rx="1.8"/><path d="M4.5 12h15M10 8.3h4M10 15.7h4"/>',
+      other: '<rect x="5" y="5" width="14" height="14" rx="2.5"/>'
+    };
+    function typeIcon(type) { var T = C.TYPES[type]; return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (TYPE_IC[T && T.icon] || TYPE_IC.other) + '</svg>'; }
+    function isTextField(t) {
+      if (!t || !t.tagName) return false;
+      if (t.tagName === 'TEXTAREA' || t.isContentEditable) return true;
+      return t.tagName === 'INPUT' && ['range', 'button', 'checkbox', 'radio', 'file', 'submit'].indexOf(t.type) < 0;
+    }
+
+    /* ---------- state ---------- */
+    var ui = { tab: 'module', view: '3d', color: 'matcha', colorEach: false, labels: true, sheet: 'mid' };
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; }
+    if (saved && saved.ui && typeof saved.ui === 'object') Object.keys(ui).forEach(function (k) { if (typeof saved.ui[k] === typeof ui[k]) ui[k] = saved.ui[k]; });
+    if (['module', 'style', 'print'].indexOf(ui.tab) < 0) ui.tab = 'module';
+    if (ui.view !== 'plan') ui.view = '3d';
+    if (['min', 'mid', 'max'].indexOf(ui.sheet) < 0) ui.sheet = 'mid';
+    ui.explode = false; ui.drawers = false;          // view states that always start closed
+
+    var start = null;
+    if (saved && saved.design) { try { start = C.parse(JSON.stringify(saved.design)); if (!start.modules.length) start = null; } catch (e) { start = null; } }
+    var restored = !!start;
+    if (!start) start = C.normalizeDesign(C.template('desk-set'));
+    // "edited" = different from the template or loaded design this one started as
+    var baseline = restored && typeof saved.baseline === 'string' ? saved.baseline : JSON.stringify(start);
+
+    var hist = E.history.create(start), analysis = L.analyze(start);
+    var draft = null;                // a plan drag in progress: { design, analysis, ... } shown instead of the committed design
+    var sel = null, flagged = [], adding = false;
+    var kernel = null, kstate = 'loading', result = null, resultFor = null;
+    var needBuild = false, buildAt = 0, buildSince = 0, lastBuildMs = 0, buildFailed = false, builds = 0;
+    var ready = false;
+
+    function design() { return hist.present; }
+    function cur() { return draft ? draft.analysis : analysis; }
+    function edited() { return JSON.stringify(hist.present) !== baseline; }
+    function filament() { return FILAMENTS.filter(function (f) { return f.id === ui.color; })[0] || FILAMENTS[0]; }
+    function colorOf(id) {
+      if (!ui.colorEach) return filament().hex;
+      var k = /(\d+)$/.exec(id), n = k ? +k[1] - 1 : 0;
+      return TINTS[((n % TINTS.length) + TINTS.length) % TINTS.length];
+    }
+    var saveTimer = null;
+    function saveNow() { clearTimeout(saveTimer); saveTimer = null; try { localStorage.setItem(KEY, JSON.stringify({ design: hist.present, baseline: baseline, ui: ui })); } catch (e) {} }
+    function persist() { if (!saveTimer) saveTimer = setTimeout(saveNow, 250); }
+
+    /* ---------- edits and history ---------- */
+    function designChanged() {
+      draft = null;
+      analysis = L.analyze(hist.present);
+      if (sel && !analysis.byId[sel]) { sel = null; adding = false; }
+      flagged = flagged.filter(function (id) { return analysis.byId[id]; });
+      touchBuild();
+      syncAll();
+      persist();
+    }
+    function setHistory(next) {
+      var changed = next.present !== hist.present;
+      hist = next;
+      if (changed) designChanged(); else syncTools();
+    }
+    function commit(d, key) { setHistory(E.history.push(hist, d, key)); }
+    function seal() { hist = E.history.seal(hist); }
+    var REASONS = { limit: 'That is as far as this module goes.', missing: 'That module is gone.' };
+    function apply(r, key) {            // r: a result from the editor
+      if (r.ok) commit(r.design, key);
+      else if (r.reason === 'blocked' && r.by && r.by.length) {
+        var A = cur(), names = r.by.map(function (id) { return A.byId[id] ? A.byId[id].name : ''; }).filter(Boolean);
+        flagged = r.by.slice(); syncSelection();
+        toast(names.length ? names.join(' and ') + (names.length > 1 ? ' are' : ' is') + ' in the way.' : 'Something is in the way.');
+      } else if (REASONS[r.reason]) toast(REASONS[r.reason]);
+      return r;
+    }
+    function undo() { if (!E.history.canUndo(hist)) return; setHistory(E.history.undo(hist)); toast('Undone'); }
+    function redo() { if (!E.history.canRedo(hist)) return; setHistory(E.history.redo(hist)); toast('Redone'); }
+
+    function select(id, opts) {
+      opts = opts || {};
+      var A = cur();
+      if (id && !A.byId[id]) id = null;
+      sel = id; adding = false;
+      flagged = (opts.flag || []).filter(function (f) { return A.byId[f] && f !== id; });
+      if (id) $('hint').classList.add('gone');
+      if (opts.tab && id && ui.tab !== 'module') setTab('module'); else syncSelection();
+    }
+    function syncSelection() { syncModuleTab(); syncPartsList(); paint3D(); syncTools(); planDirty = true; }
+    function syncAll() { syncHUD(); syncModuleTab(); syncStyleTab(); syncPrintTab(); syncTools(); syncExport(); paint3D(); planDirty = true; }
+
+    var toastTimer = null;
+    function toast(text, ms) {
+      var el = $('toast');
+      el.textContent = text; el.classList.add('on');
+      clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove('on'); }, ms || 2200);
+    }
+
+    /* ---------- the geometry kernel ---------- */
+    function loadKernel() {
+      var p;
+      try { p = K && typeof K.load === 'function' ? Promise.resolve(K.load()) : Promise.reject(new Error('The geometry kernel is missing from this page.')); }
+      catch (e) { p = Promise.reject(e); }
+      p.then(function (k) {
+        if (!k || typeof k.build !== 'function') throw new Error('The geometry kernel did not start.');
+        kernel = k; kstate = 'ready'; needBuild = true; buildAt = 0;
+        syncVeil(); syncExport();
+      }).catch(function (err) {
+        kstate = 'failed'; kernel = null; ready = true;
+        if (window.console && console.warn) console.warn('Modular builder: the geometry kernel did not load.', err);
+        syncVeil(); syncAll();
+      });
+    }
+    // The design changed: build again soon. A fast kernel builds on the next animation frame (so at most once per
+    // frame while a slider moves); a slow one, or any kernel while only the plan is showing, waits for a short pause.
+    function touchBuild() {
+      var now = performance.now();
+      needBuild = true;
+      if (!buildSince) buildSince = now;
+      buildAt = lastBuildMs > 45 || ui.view === 'plan' ? Math.min(now + 110, buildSince + 420) : 0;
+    }
+    function runBuild() {
+      var d = hist.present, t0 = performance.now(), res = null;
+      needBuild = false; buildSince = 0;
+      try { res = kernel.build(d); }
+      catch (e) {
+        buildFailed = true; lastBuildMs = performance.now() - t0;
+        if (window.console && console.warn) console.warn('Modular builder: this layout could not be built.', e);
+      }
+      if (res) { lastBuildMs = performance.now() - t0; buildFailed = false; result = res; resultFor = d; builds++; syncScene(); }
+      ready = true;
+      syncHUD(); syncPartsList(); syncExport(); syncTools(); syncVeil();
+      if (res) checkRefit();
+    }
+    function resultCurrent() { return !!result && !draft && resultFor === hist.present; }
+    function bodyPart(id) {
+      var ps = result && result.byModule && result.byModule[id];
+      if (!ps) return null;
+      for (var i = 0; i < ps.length; i++) if (ps[i].role === 'body' || ps[i].id === id) return ps[i];
+      return ps[0] || null;
+    }
+    // every printable part with its plate check. Bodies follow the live layout; drawers come from the last build.
+    function partsInfo() {
+      var A = cur(), list = [], fresh = resultCurrent();
+      A.modules.forEach(function (M) {
+        var ps = result && result.byModule && result.byModule[M.id], body = { id: M.id, moduleId: M.id, role: 'body', name: M.name, size: [M.w, M.d, M.h], angle: M.fit.angle, fits: M.fit.fits, wide: M.fit.wide, tall: M.fit.tall, bridge: 0 };
+        if (!ps || !ps.length) { list.push(body); return; }
+        ps.forEach(function (p) {
+          var pr = p.print || {};
+          if (p.role === 'body' && !fresh) { body.bridge = pr.bridge || 0; list.push(body); }
+          else list.push({ id: p.id, moduleId: p.moduleId, role: p.role, name: p.name, size: pr.size || [M.w, M.d, M.h], angle: pr.angle || 0, fits: pr.fits !== false, wide: !!pr.wide, tall: !!pr.tall, bridge: pr.bridge || 0 });
+        });
+      });
+      return list;
+    }
+    function currentWarnings() {
+      var list = (resultCurrent() && result.warnings ? result.warnings : cur().warnings).slice(), rank = { error: 0, warn: 1, info: 2 };
+      if (buildFailed && !draft) list.push({ code: 'build', level: 'warn', ids: [], message: 'This layout could not be turned into 3D parts. Undo the last change or try other sizes.' });
+      return list.map(function (w, i) { return { w: w, i: i }; }).sort(function (p, q) { return (rank[p.w.level] - rank[q.w.level]) || (p.i - q.i); }).map(function (p) { return p.w; });
+    }
+    function printerOf(S) { for (var i = 0; i < C.PRINTERS.length; i++) if (C.PRINTERS[i].plate === S.plate && C.PRINTERS[i].plateH === S.plateH) return C.PRINTERS[i]; return null; }
+    function plateName(S) { var p = printerOf(S); return p ? 'the ' + p.label : 'a ' + n1(S.plate) + ' mm plate'; }
+
+    /* ---------- HUD ---------- */
+    var nameEl = $('dName'), warnSig = '', warnOpen = false;
+    nameEl.addEventListener('input', function () { var r = E.setName(design(), nameEl.value); if (r.ok) commit(r.design, 'design-name'); });
+    nameEl.addEventListener('change', function () { seal(); nameEl.value = design().name; });
+    nameEl.addEventListener('blur', function () { seal(); nameEl.value = design().name; });
+    nameEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); nameEl.blur(); } });
+    $('fitChip').addEventListener('click', function () { setTab('print'); if (ui.sheet === 'min') setSheet('mid'); });
+    function syncHUD() {
+      var A = cur(), S = A.settings, parts = partsInfo(), warnings = currentWarnings();
+      if (document.activeElement !== nameEl) nameEl.value = A.design.name;
+      document.title = A.design.name + ' · Modular Desk Organizer';
+      $('meta').textContent = A.modules.length
+        ? n1(A.size.w) + ' × ' + n1(A.size.d) + ' × ' + n1(A.size.h) + ' mm · ' + parts.length + (parts.length === 1 ? ' part' : ' parts')
+        : 'No modules yet';
+      var bad = parts.filter(function (p) { return !p.fits; }), errs = warnings.filter(function (w) { return w.level === 'error'; }), text, cls = '';
+      if (errs.length) { cls = ' err'; text = errs.length === 1 ? 'Two modules overlap' : errs.length + ' overlaps to fix'; }
+      else if (!parts.length) { cls = ' idle'; text = 'Nothing to print yet'; }
+      else if (bad.length) { cls = ' warn'; text = (bad.length === 1 ? '1 part is' : bad.length + ' parts are') + ' too big for ' + plateName(S); }
+      else text = (parts.length === 1 ? 'The part fits ' : 'All ' + parts.length + ' parts fit ') + plateName(S);
+      $('fitChip').className = 'fit' + cls;
+      $('fitText').textContent = text;
+      syncWarnings(warnings);
+    }
+    function syncWarnings(list) {
+      var box = $('warns'), cap = phoneMQ.matches ? 2 : 4, errors = list.filter(function (w) { return w.level === 'error'; }).length;
+      var shown = warnOpen ? list : list.slice(0, Math.max(cap, Math.min(errors, 4)));
+      var sig = JSON.stringify([shown.map(function (w) { return [w.level, w.message, w.ids]; }), list.length, warnOpen]);
+      if (sig === warnSig) return;
+      warnSig = sig; box.textContent = '';
+      var fixShown = false;
+      shown.forEach(function (w) {
+        var b = h('button', { class: 'wrow ' + w.level, type: 'button', html: icon(w.level === 'info' ? 'info' : 'warn') }, [h('span', { text: w.message })]);
+        b.addEventListener('click', function () { focusModules(w.ids || []); });
+        box.appendChild(b);
+        if (w.code === 'overlap' && !fixShown) {
+          fixShown = true;
+          box.appendChild(h('button', { class: 'wfix', id: 'fixOverlap', type: 'button', text: 'Move them apart', onclick: function () {
+            var r = E.separate(design());
+            if (r.ok) { commit(r.design); toast('Moved ' + r.moved.length + (r.moved.length === 1 ? ' module' : ' modules') + ' to the nearest free spot.'); }
+          } }));
+        }
+      });
+      if (list.length > shown.length) box.appendChild(h('button', { class: 'wmore', type: 'button', text: '+' + (list.length - shown.length) + ' more', onclick: function () { warnOpen = true; syncHUD(); } }));
+      else if (warnOpen && list.length > cap) box.appendChild(h('button', { class: 'wmore', type: 'button', text: 'Show fewer', onclick: function () { warnOpen = false; syncHUD(); } }));
+    }
+    function focusModules(ids) {
+      var A = cur();
+      ids = ids.filter(function (id) { return A.byId[id]; });
+      if (!ids.length) return;
+      select(ids[0], { flag: ids.slice(1) });
+      if (ui.view === 'plan' && !planShows(ids)) planFit(false);
+    }
+
+    /* ---------- stage buttons ---------- */
+    $('bUndo').innerHTML = icon('undo'); $('bRedo').innerHTML = icon('redo');
+    $('tExplode').innerHTML = icon('explode'); $('tDrawers').innerHTML = icon('drawers'); $('tLabels').innerHTML = icon('labels'); $('tFit').innerHTML = icon('fit');
+    $('bUndo').addEventListener('click', undo);
+    $('bRedo').addEventListener('click', redo);
+    $('tExplode').addEventListener('click', function () { ui.explode = !ui.explode; syncTools(); setTargets(); fit3D(false); });
+    $('tDrawers').addEventListener('click', function () { ui.drawers = !ui.drawers; syncTools(); setTargets(); });
+    $('tLabels').addEventListener('click', function () { ui.labels = !ui.labels; syncTools(); syncStyleTab(); persist(); if (G) G.dirty = true; });
+    $('tFit').addEventListener('click', function () { if (ui.view === 'plan') planFit(false); else home3D(); });
+    $('view3d').addEventListener('click', function () { setView('3d'); });
+    $('viewPlan').addEventListener('click', function () { setView('plan'); });
+    $('veilBtn').addEventListener('click', function () { setView('plan'); });
+    function hasDrawers() { return !!result && result.parts.some(function (p) { return !!p.slide; }); }
+    function syncTools() {
+      $('bUndo').disabled = !E.history.canUndo(hist);
+      $('bRedo').disabled = !E.history.canRedo(hist);
+      var multi = !!result && result.parts.length > 1;
+      $('tExplode').disabled = !multi;
+      $('tExplode').setAttribute('aria-pressed', String(ui.explode && multi));
+      $('tDrawers').hidden = !hasDrawers();
+      $('tDrawers').setAttribute('aria-pressed', String(ui.drawers));
+      $('tDrawers').setAttribute('aria-label', ui.drawers ? 'Push the drawers in' : 'Pull the drawers open');
+      $('tLabels').setAttribute('aria-pressed', String(ui.labels));
+    }
+    function setView(v) {
+      ui.view = v === 'plan' ? 'plan' : '3d';
+      app.dataset.view = ui.view;
+      $('view3d').setAttribute('aria-pressed', String(ui.view === '3d'));
+      $('viewPlan').setAttribute('aria-pressed', String(ui.view === 'plan'));
+      $('hint').textContent = ui.view === 'plan' ? 'Drag a module to move it · pinch to zoom' : 'Tap a module to edit it, or add one';
+      if (ui.view === 'plan') { if (plan.auto) planFit(true); planDirty = true; }
+      else { if (needBuild) buildAt = 0; if (G) { resize3D(); G.dirty = true; } }
+      persist();
+    }
+    function syncVeil() {
+      var strong = '', text = '', dot = false, btn = false;
+      if (kstate === 'failed') {
+        strong = 'The geometry engine could not start';
+        text = 'This browser blocked it (it needs WebAssembly), so there is no 3D preview and no STL export here. You can still plan the layout and copy the design, then open it in Chrome or Safari.';
+        btn = true;
+      } else if (noGL) {
+        strong = noGL === 'lib' ? 'The 3D view could not load' : 'This browser has 3D graphics turned off';
+        text = (noGL === 'lib' ? 'Its drawing library was blocked on the way here. ' : '') + 'The plan and everything in the panel still work' + (kstate === 'ready' ? ', and so does the STL download.' : '.');
+        btn = true;
+      } else if (kstate === 'loading' || (kstate === 'ready' && !result && !buildFailed)) { text = 'Starting the geometry engine…'; dot = true; }
+      else if (!result && buildFailed) { strong = 'This layout could not be built'; text = 'Try other sizes, or start from a template in the Module tab.'; btn = true; }
+      else if (result && !result.parts.length) text = 'Nothing here yet. Add a module from the panel.';
+      $('veil').hidden = !strong && !text;
+      $('veilDot').hidden = !dot;
+      $('veilBtn').hidden = !btn;
+      var p = $('veilText'); p.textContent = '';
+      if (strong) p.appendChild(h('b', { text: strong }));
+      p.appendChild(document.createTextNode(text));
+    }
+
+    /* ---------- 3D view ---------- */
+    var G = null, noGL = '';          // G: the 3D view's objects; null (and noGL says why) without three.js or WebGL
+    function init3D() {
+      if (typeof THREE === 'undefined' || !THREE.OrbitControls || !THREE.RoomEnvironment || !THREE.BufferGeometryUtils) { noGL = 'lib'; return; }
+      var renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' }); }
+      catch (e) { noGL = 'gl'; return; }
+      THREE.ColorManagement.legacyMode = false;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.85;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(0x000000, 0);
+      var scene = new THREE.Scene(), pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+      var camera = new THREE.PerspectiveCamera(30, 1, 5, 12000);
+      var controls = new THREE.OrbitControls(camera, canvas);
+      controls.enableDamping = true; controls.dampingFactor = 0.09;
+      controls.minDistance = 120; controls.maxDistance = 4000;
+      controls.maxPolarAngle = Math.PI * 0.49; controls.screenSpacePanning = true;
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x8d938c, 0.22));
+      var key = new THREE.DirectionalLight(0xffffff, 1.05);
+      key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+      key.shadow.bias = -0.0005; key.shadow.normalBias = 0.35; key.shadow.radius = 4;
+      scene.add(key); scene.add(key.target);
+      var rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(280, 150, -320); scene.add(rim);
+      var shadowMat = new THREE.ShadowMaterial({ opacity: 0.2 });
+      var ground = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), shadowMat);
+      ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+      var world = new THREE.Group(); world.rotation.x = -Math.PI / 2; scene.add(world);     // content is Z-up, like the STL
+      G = { renderer: renderer, scene: scene, camera: camera, controls: controls, key: key, shadowMat: shadowMat, world: world,
+        views: {}, mats: {}, marks: [], tags: [], tween: null, dirty: true, pad: 0, fitBox: null, refitTimer: null,
+        ray: new THREE.Raycaster(), geoMade: 0, geoKept: 0 };
+      controls.addEventListener('start', function () { G.tween = null; $('hint').classList.add('gone'); });
+      controls.addEventListener('change', function () { G.dirty = true; });
+      // a tap (not an orbit drag) selects what is under it
+      var tap = null;
+      canvas.addEventListener('pointerdown', function (e) {
+        if (isTextField(document.activeElement)) document.activeElement.blur();
+        tap = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, slop: e.pointerType === 'mouse' ? 4 : 10 } : null;
+      });
+      canvas.addEventListener('pointermove', function (e) { if (tap && e.pointerId === tap.id && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > tap.slop) tap = null; });
+      canvas.addEventListener('pointerup', function (e) {
+        var t = tap; tap = null;
+        if (t && e.pointerId === t.id && performance.now() - t.t < 700) select(pick3D(e.clientX, e.clientY), { tab: true });
+      });
+      canvas.addEventListener('pointercancel', function () { tap = null; });
+    }
+    function viewSize() { return { w: stage.clientWidth || 1, h: stage.clientHeight || 1 }; }
+    function matFor(id) {
+      if (!G.mats[id]) G.mats[id] = new THREE.MeshStandardMaterial({ color: 0xa2b389, roughness: 0.68, metalness: 0, envMapIntensity: 0.5 });
+      return G.mats[id];
+    }
+    function makeGeometry(part) {
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(part.positions, 3));
+      g.setIndex(new THREE.BufferAttribute(part.indices, 1));
+      var shaded = THREE.BufferGeometryUtils.toCreasedNormals(g, Math.PI * 40 / 180);
+      g.dispose();
+      return shaded;
+    }
+    // Bring the scene in line with the last build. A part whose key did not change keeps its geometry.
+    function syncScene() {
+      if (!G || !result) return;
+      var seen = {}, used = {};
+      result.parts.forEach(function (part) {
+        seen[part.id] = 1; used[part.moduleId] = 1;
+        var pv = G.views[part.id];
+        if (!pv) {
+          pv = G.views[part.id] = { mesh: new THREE.Mesh(undefined, matFor(part.moduleId)), key: null, cur: null, tgt: [0, 0, 0] };
+          pv.mesh.castShadow = true; pv.mesh.receiveShadow = true; G.world.add(pv.mesh);
+        }
+        if (pv.key !== part.key) {
+          var old = pv.mesh.geometry;
+          pv.mesh.geometry = makeGeometry(part); old.dispose(); pv.key = part.key; G.geoMade++;
+        } else G.geoKept++;
+        pv.part = part; pv.mesh.material = matFor(part.moduleId); pv.mesh.userData.moduleId = part.moduleId;
+      });
+      Object.keys(G.views).forEach(function (id) {
+        if (seen[id]) return;
+        G.world.remove(G.views[id].mesh); G.views[id].mesh.geometry.dispose(); delete G.views[id];
+      });
+      Object.keys(G.mats).forEach(function (id) { if (!used[id]) { G.mats[id].dispose(); delete G.mats[id]; } });
+      setTargets(); paint3D(); makeTags(); aimLight();
+      G.dirty = true;
+    }
+    // where each part rests: in place, moved out along its explode direction, drawers pulled along their slide
+    function offsetFor(part) {
+      var A = result.analysis, ex = ui.explode && result.parts.length > 1, o = [0, 0, 0];
+      if (ex) {
+        var body = bodyPart(part.moduleId) || part, e = body.explode || [0, 0, 0], dist = clamp(0.3 * Math.max(A.size.w, A.size.d), 26, 85);
+        o = [e[0] * dist, e[1] * dist, (e[2] || 0) * dist];
+      }
+      if (part.slide && (ex || ui.drawers)) {
+        var t = ex ? part.slide.travel + 16 : part.slide.travel * 0.8, dir = part.slide.dir;
+        o[0] += dir[0] * t; o[1] += dir[1] * t; o[2] += (dir[2] || 0) * t;
+      }
+      return o;
+    }
+    function setTargets() {
+      if (!G || !result) return;
+      result.parts.forEach(function (p) {
+        var pv = G.views[p.id];
+        if (!pv) return;
+        pv.tgt = offsetFor(p);
+        if (!pv.cur) { pv.cur = pv.tgt.slice(); pv.mesh.position.set(pv.cur[0], pv.cur[1], pv.cur[2]); }
+      });
+      G.dirty = true;
+    }
+    function ringGeometry(M, inner, outer) {
+      function rr(path, g) {
+        var x0 = M.x - g, y0 = M.y - g, x1 = M.x + M.w + g, y1 = M.y + M.d + g, r = Math.min(g + 3, (x1 - x0) / 2, (y1 - y0) / 2);
+        path.moveTo(x0 + r, y0); path.lineTo(x1 - r, y0); path.absarc(x1 - r, y0 + r, r, -Math.PI / 2, 0, false);
+        path.lineTo(x1, y1 - r); path.absarc(x1 - r, y1 - r, r, 0, Math.PI / 2, false);
+        path.lineTo(x0 + r, y1); path.absarc(x0 + r, y1 - r, r, Math.PI / 2, Math.PI, false);
+        path.lineTo(x0, y0 + r); path.absarc(x0 + r, y0 + r, r, Math.PI, Math.PI * 1.5, false);
+      }
+      var s = new THREE.Shape(), hole = new THREE.Path();
+      rr(s, outer); rr(hole, inner); s.holes.push(hole);
+      return new THREE.ShapeGeometry(s, 5);
+    }
+    var tmpColor = null, tmpColor2 = null;
+    // colours, the selection tint and the rings on the ground round selected / flagged modules
+    function paint3D() {
+      if (!G || !result) return;
+      tmpColor = tmpColor || new THREE.Color(); tmpColor2 = tmpColor2 || new THREE.Color();
+      var A = result.analysis, accent = token('--accent') || '#2C6A56', warn = token('--warn') || '#B4581A', err = token('--err') || '#B3362B';
+      G.marks.forEach(function (m) { G.world.remove(m.mesh); m.mesh.geometry.dispose(); m.mesh.material.dispose(); });
+      G.marks = [];
+      Object.keys(G.mats).forEach(function (id) {
+        var m = G.mats[id], M = A.byId[id], state = id === sel ? accent : M && M.warnings.indexOf('overlap') >= 0 ? err : flagged.indexOf(id) >= 0 ? warn : null;
+        tmpColor.set(colorOf(id));
+        if (state) { tmpColor2.set(state); tmpColor.lerp(tmpColor2, id === sel ? 0.36 : 0.42); m.emissive.copy(tmpColor2); m.emissiveIntensity = id === sel ? 0.14 : 0.1; }
+        else { m.emissive.set(0x000000); m.emissiveIntensity = 0; }
+        m.color.copy(tmpColor);
+        if (state && M) {
+          var ring = new THREE.Mesh(ringGeometry(M, 1.6, 4.4), new THREE.MeshBasicMaterial({ color: state, transparent: true, opacity: 0.92, depthWrite: false, toneMapped: false }));
+          ring.position.z = 0.25; ring.renderOrder = 2; G.world.add(ring);
+          G.marks.push({ mesh: ring, id: id });
+        }
+      });
+      paintTags();
+      G.dirty = true;
+    }
+    function makeTags() {
+      labelsEl.textContent = ''; G.tags = [];
+      result.analysis.modules.forEach(function (M) {
+        var body = bodyPart(M.id);
+        if (!body || !G.views[body.id]) return;
+        var el = h('div', { class: 'tag', text: M.name }), bb = body.bbox;
+        labelsEl.appendChild(el);
+        G.tags.push({ el: el, id: M.id, pv: G.views[body.id], at: new THREE.Vector3((bb.min[0] + bb.max[0]) / 2, (bb.min[1] + bb.max[1]) / 2, bb.max[2] + 2), w: el.offsetWidth || 60, h: el.offsetHeight || 22, box: null });
+      });
+      paintTags();
+    }
+    function paintTags() {
+      if (!G || !result) return;
+      var A = result.analysis;
+      G.tags.forEach(function (t) {
+        var M = A.byId[t.id];
+        t.el.className = 'tag' + (t.id === sel ? ' on' : M && M.warnings.indexOf('overlap') >= 0 ? ' bad' : flagged.indexOf(t.id) >= 0 ? ' flag' : '');
+      });
+    }
+    var tv = null;
+    // tags sit over their module; where two would collide the nearer one wins (the selected one always shows)
+    function placeTags(w, hgt) {
+      tv = tv || new THREE.Vector3();
+      var placed = [], order = [];
+      G.tags.forEach(function (t) {
+        t.box = null;
+        if (!ui.labels) { t.el.hidden = true; return; }
+        tv.copy(t.at); tv.x += t.pv.cur[0]; tv.y += t.pv.cur[1]; tv.z += t.pv.cur[2];
+        G.world.localToWorld(tv); tv.project(G.camera);
+        if (tv.z > 1 || tv.z < -1) { t.el.hidden = true; return; }
+        t.sx = (tv.x * 0.5 + 0.5) * w; t.sy = (-tv.y * 0.5 + 0.5) * hgt; t.depth = t.id === sel ? -2 : tv.z;
+        order.push(t);
+      });
+      order.sort(function (p, q) { return p.depth - q.depth; });
+      order.forEach(function (t) {
+        var b = { x0: t.sx - t.w / 2, x1: t.sx + t.w / 2, y0: t.sy - t.h - 9, y1: t.sy - 9 };
+        var clash = placed.some(function (p) { return b.x0 < p.x1 + 3 && b.x1 > p.x0 - 3 && b.y0 < p.y1 + 2 && b.y1 > p.y0 - 2; });
+        t.el.hidden = clash;
+        if (clash) return;
+        placed.push(b); t.box = b;
+        t.el.style.transform = 'translate(' + t.sx.toFixed(1) + 'px,' + t.sy.toFixed(1) + 'px) translate(-50%, calc(-100% - 9px))';
+      });
+    }
+    function pick3D(cx, cy) {
+      if (!G || !result) return null;
+      var r = canvas.getBoundingClientRect(), x = cx - r.left, y = cy - r.top, id = null;
+      G.tags.forEach(function (t) { if (!id && t.box && x >= t.box.x0 - 3 && x <= t.box.x1 + 3 && y >= t.box.y0 - 3 && y <= t.box.y1 + 3) id = t.id; });
+      if (id) return id;
+      G.ray.setFromCamera({ x: (x / r.width) * 2 - 1, y: -(y / r.height) * 2 + 1 }, G.camera);
+      var hits = G.ray.intersectObjects(Object.keys(G.views).map(function (k) { return G.views[k].mesh; }), false);
+      return hits.length ? hits[0].object.userData.moduleId : null;
+    }
+    // the box (in scene coordinates: x right, y up, z towards the front) the parts fill at rest
+    function contentBox() {
+      var b = new THREE.Box3(), p = new THREE.Vector3(), any = false;
+      (result ? result.parts : []).forEach(function (part) {
+        var pv = G.views[part.id];
+        if (!pv) return;
+        var o = pv.tgt, mn = part.bbox.min, mx = part.bbox.max;
+        b.expandByPoint(p.set(mn[0] + o[0], mn[2] + o[2], -(mx[1] + o[1])));
+        b.expandByPoint(p.set(mx[0] + o[0], mx[2] + o[2], -(mn[1] + o[1])));
+        any = true;
+      });
+      if (!any) b.set(new THREE.Vector3(-60, 0, -60), new THREE.Vector3(60, 60, 60));
+      return b;
+    }
+    function aimLight() {
+      var b = contentBox(), c = b.getCenter(new THREE.Vector3()), r = Math.max(280, b.getSize(new THREE.Vector3()).length() * 0.75), sc = G.key.shadow.camera;
+      G.key.target.position.set(c.x, 0, c.z);
+      G.key.position.set(c.x - 170, 330, c.z + 230);
+      sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.near = 20; sc.far = 1300 + r; sc.updateProjectionMatrix();
+    }
+    // The title block takes a band at the top of the stage: the camera's principal point is pushed down by half
+    // of it (setViewOffset) and framing uses only the area below, as in the classic viewer.
+    function tans() {
+      var s = viewSize(), t = Math.tan(G.camera.fov * Math.PI / 360), F = s.h + G.pad;
+      return { v: t * (s.h - G.pad) / F, h: t * s.w / F };
+    }
+    function goal3D() {
+      var b = contentBox(), c = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3()), t = tans();
+      var d = (sz.length() / 2) / Math.sin(Math.atan(Math.min(t.v, t.h))) * 1.04, phi = 1.0, th = 0.5;
+      return { pos: new THREE.Vector3(c.x + d * Math.sin(phi) * Math.sin(th), c.y + d * Math.cos(phi), c.z + d * Math.sin(phi) * Math.cos(th)), tgt: c };
+    }
+    function moveCamera(pos, tgt, instant, ms) {
+      if (instant || reduceMotion) { G.camera.position.copy(pos); G.controls.target.copy(tgt); G.tween = null; G.controls.update(); G.dirty = true; return; }
+      G.tween = { p0: G.camera.position.clone(), t0: G.controls.target.clone(), p1: pos, t1: tgt, start: performance.now(), ms: ms || 650 };
+    }
+    function fit3D(instant) {            // reframe the content, keeping the viewing direction
+      if (!G || !result) return;
+      clearTimeout(G.refitTimer);
+      var gl = goal3D();
+      if (!G.fitBox) { G.fitBox = contentBox(); moveCamera(gl.pos, gl.tgt, true); return; }
+      G.fitBox = contentBox();
+      var dir = G.camera.position.clone().sub(G.controls.target).normalize();
+      moveCamera(gl.tgt.clone().add(dir.multiplyScalar(gl.pos.distanceTo(gl.tgt))), gl.tgt, instant, 600);
+    }
+    function home3D() {
+      if (!G || !result) return;
+      clearTimeout(G.refitTimer);
+      var gl = goal3D(); G.fitBox = contentBox();
+      moveCamera(gl.pos, gl.tgt, false, 700);
+    }
+    // after a build: reframe only when the outline changed materially, and only once the changes pause
+    function checkRefit() {
+      if (!G || !result) return;
+      if (!G.fitBox) { fit3D(true); return; }
+      var b = contentBox(), f = G.fitBox, sz = b.getSize(new THREE.Vector3()), ref = Math.max(sz.x, sz.y, sz.z, 40);
+      var moved = Math.max(Math.abs(b.min.x - f.min.x), Math.abs(b.min.y - f.min.y), Math.abs(b.min.z - f.min.z), Math.abs(b.max.x - f.max.x), Math.abs(b.max.y - f.max.y), Math.abs(b.max.z - f.max.z));
+      clearTimeout(G.refitTimer);
+      if (moved > Math.max(10, 0.09 * ref)) G.refitTimer = setTimeout(function () { fit3D(false); }, 420);
+    }
+    function resize3D() {
+      if (!G) return;
+      var s = viewSize(), sr = stage.getBoundingClientRect(), hr = $('fitChip').getBoundingClientRect();
+      G.pad = Math.round(Math.max(0, Math.min(s.h * 0.3, hr.bottom - sr.top + 6)));
+      G.renderer.setSize(s.w, s.h, false);
+      G.camera.setViewOffset(s.w, s.h + G.pad, 0, 0, s.w, s.h);       // also sets the aspect
+      G.camera.updateProjectionMatrix();
+      if (result && G.fitBox) fit3D(true);
+      G.dirty = true;
+    }
+    function applyTheme() {
+      if (G) { var a = parseFloat(token('--shadow-alpha')); G.shadowMat.opacity = isNaN(a) ? 0.2 : a; paint3D(); G.dirty = true; }
+      planDirty = true;
+    }
+    function tick3D(now, dt) {
+      if (!G) return;
+      if (G.tween) {
+        var k = Math.min(1, (now - G.tween.start) / G.tween.ms), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        G.camera.position.lerpVectors(G.tween.p0, G.tween.p1, e); G.controls.target.lerpVectors(G.tween.t0, G.tween.t1, e);
+        if (k >= 1) G.tween = null;
+        G.dirty = true;
+      }
+      Object.keys(G.views).forEach(function (id) {
+        var pv = G.views[id], c = pv.cur, t = pv.tgt;
+        if (!c) return;
+        var dx = t[0] - c[0], dy = t[1] - c[1], dz = t[2] - c[2], far = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+        if (far === 0) return;
+        var f = reduceMotion || far < 0.02 ? 1 : Math.min(1, dt * 7);
+        c[0] += dx * f; c[1] += dy * f; c[2] += dz * f;
+        pv.mesh.position.set(c[0], c[1], c[2]);
+        G.dirty = true;
+      });
+      G.marks.forEach(function (m) {
+        var body = bodyPart(m.id), pv = body && G.views[body.id];
+        if (pv && pv.cur) m.mesh.position.set(pv.cur[0], pv.cur[1], 0.25);
+      });
+      if (ui.view !== '3d') return;
+      if (G.controls.update()) G.dirty = true;
+      if (!G.dirty) return;
+      G.dirty = false;
+      G.renderer.render(G.scene, G.camera);
+      var s = viewSize(); placeTags(s.w, s.h);
+    }
+
+    /* ---------- plan view ----------
+       A top-down editor drawn in screen pixels: x to the right, the desk's front (-y) at the bottom. plan.k is the
+       scale in px per mm, (plan.cx, plan.cy) the plan point at the middle of the stage. The svg is redrawn whole
+       (it is small), so pointer handling lives on the svg itself and hit-tests against the layout.            */
+    var plan = { cx: 100, cy: 70, k: 1.4, auto: true, tween: null }, planDirty = true, gesture = null, ptrs = {}, nptrs = 0;
+    var FONT_NAME = '600 12px "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif', FONT_SIZE = '400 10.5px "DM Mono", ui-monospace, Menlo, Consolas, monospace';
+    var mctx = null;
+    try { mctx = document.createElement('canvas').getContext('2d'); } catch (e) { mctx = null; }
+    function textWidth(text, font) { if (!mctx) return text.length * 6.6; mctx.font = font; return mctx.measureText(text).width; }
+    function fitText(text, font, maxW) {
+      if (textWidth(text, font) <= maxW) return text;
+      var t = text;
+      while (t.length > 1 && textWidth(t + '…', font) > maxW) t = t.slice(0, -1);
+      return textWidth(t + '…', font) <= maxW ? t + '…' : '';
+    }
+    function toScreen(x, y) { var s = viewSize(); return [s.w / 2 + (x - plan.cx) * plan.k, s.h / 2 - (y - plan.cy) * plan.k]; }
+    function toPlan(px, py) { var s = viewSize(); return [plan.cx + (px - s.w / 2) / plan.k, plan.cy - (py - s.h / 2) / plan.k]; }
+    function planInsets() {          // the parts of the stage the overlays cover
+      var sr = stage.getBoundingClientRect(), hr = $('fitChip').getBoundingClientRect();
+      return { top: Math.min(sr.height * 0.4, Math.max(60, hr.bottom - sr.top + 16)), right: 64, bottom: phoneMQ.matches ? 78 : 62, left: 18 };
+    }
+    function planGoal() {
+      var b = cur().bounds, s = viewSize(), ins = planInsets();
+      var w = Math.max(b.x1 - b.x0, 40), d = Math.max(b.y1 - b.y0, 40);
+      var aw = Math.max(80, s.w - ins.left - ins.right), ah = Math.max(80, s.h - ins.top - ins.bottom);
+      var k = clamp(Math.min(aw / (w + 36), ah / (d + 36)), 0.25, 5);
+      return { k: k, cx: (b.x0 + b.x1) / 2 - (ins.left + aw / 2 - s.w / 2) / k, cy: (b.y0 + b.y1) / 2 + (ins.top + ah / 2 - s.h / 2) / k };
+    }
+    function planFit(instant) {
+      var g = planGoal();
+      plan.auto = true;
+      if (instant || reduceMotion) { plan.k = g.k; plan.cx = g.cx; plan.cy = g.cy; plan.tween = null; }
+      else plan.tween = { from: { k: plan.k, cx: plan.cx, cy: plan.cy }, to: g, start: performance.now(), ms: 320 };
+      planDirty = true;
+    }
+    function planShows(ids) {
+      var A = cur(), s = viewSize(), ins = planInsets();
+      return ids.every(function (id) {
+        var M = A.byId[id]; if (!M) return true;
+        var a = toScreen(M.x, M.y), b = toScreen(M.x + M.w, M.y + M.d);
+        return b[0] > ins.left + 20 && a[0] < s.w - ins.right - 20 && a[1] > ins.top + 20 && b[1] < s.h - ins.bottom - 20;
+      });
+    }
+    var planFitTimer = null;
+    function planFollow() {             // after an edit: keep everything in view while the user has not zoomed or panned
+      clearTimeout(planFitTimer);
+      if (!plan.auto || gesture) return;
+      planFitTimer = setTimeout(function () {
+        if (!plan.auto || gesture) return;
+        var g = planGoal();
+        if (Math.abs(g.k - plan.k) / plan.k > 0.04 || Math.hypot(g.cx - plan.cx, g.cy - plan.cy) * plan.k > 10) planFit(false);
+      }, 380);
+    }
+    function f1(v) { return (Math.round(v * 10) / 10).toString(); }
+    function rectPath(x0, yB, x1, yF, r) {       // screen rectangle (yB top, yF bottom) with corner radii { fl, fr, br, bl } in px
+      var m = Math.min((x1 - x0) / 2, (yF - yB) / 2), bl = Math.min(r.bl, m), br = Math.min(r.br, m), fr = Math.min(r.fr, m), fl = Math.min(r.fl, m);
+      return 'M' + f1(x0 + bl) + ' ' + f1(yB) + 'H' + f1(x1 - br) + (br ? 'A' + f1(br) + ' ' + f1(br) + ' 0 0 1 ' + f1(x1) + ' ' + f1(yB + br) : '') +
+        'V' + f1(yF - fr) + (fr ? 'A' + f1(fr) + ' ' + f1(fr) + ' 0 0 1 ' + f1(x1 - fr) + ' ' + f1(yF) : '') +
+        'H' + f1(x0 + fl) + (fl ? 'A' + f1(fl) + ' ' + f1(fl) + ' 0 0 1 ' + f1(x0) + ' ' + f1(yF - fl) : '') +
+        'V' + f1(yB + bl) + (bl ? 'A' + f1(bl) + ' ' + f1(bl) + ' 0 0 1 ' + f1(x0 + bl) + ' ' + f1(yB) : '') + 'Z';
+    }
+    function sizeText(M) { return n1(M.w) + ' × ' + n1(M.d) + ' × ' + n1(M.h); }
+    function renderPlan() {
+      var A = cur(), S = A.settings, s = viewSize(), k = plan.k, out = [], i;
+      planEl.setAttribute('viewBox', '0 0 ' + s.w + ' ' + s.h);
+      // grid: the snap grid when it is wide enough on screen, otherwise a multiple of it
+      var step = S.grid;
+      while (step * k < 9) step *= step === 1 ? 5 : 2;
+      var major = step <= 10 ? 50 : step * 5, tl = toPlan(0, 0), br = toPlan(s.w, s.h), lo = '', hi = '', v, p;
+      for (v = Math.ceil(tl[0] / step) * step; v <= br[0]; v += step) { p = f1(toScreen(v, 0)[0]); if (Math.abs(v / major - Math.round(v / major)) < 1e-6) hi += 'M' + p + ' 0V' + s.h; else lo += 'M' + p + ' 0V' + s.h; }
+      for (v = Math.ceil(br[1] / step) * step; v <= tl[1]; v += step) { p = f1(toScreen(0, v)[1]); if (Math.abs(v / major - Math.round(v / major)) < 1e-6) hi += 'M0 ' + p + 'H' + s.w; else lo += 'M0 ' + p + 'H' + s.w; }
+      out.push('<path class="pl-grid" d="' + lo + '"/><path class="pl-grid hi" d="' + hi + '"/>');
+      if (!A.modules.length) {
+        out.push('<text class="pl-empty" x="' + f1(s.w / 2) + '" y="' + f1(s.h / 2) + '">Add a module from the panel to start</text>');
+        planEl.innerHTML = out.join(''); return;
+      }
+      // the print plate, for scale: round the selected module, or the whole layout
+      var focus = sel && A.byId[sel], fc = focus ? [focus.x + focus.w / 2, focus.y + focus.d / 2] : [(A.bounds.x0 + A.bounds.x1) / 2, (A.bounds.y0 + A.bounds.y1) / 2];
+      var pa = toScreen(fc[0] - S.plate / 2, fc[1] + S.plate / 2), pw = S.plate * k, printer = printerOf(S);
+      out.push('<rect class="pl-plate" x="' + f1(pa[0]) + '" y="' + f1(pa[1]) + '" width="' + f1(pw) + '" height="' + f1(pw) + '" rx="6"/>');
+      out.push('<text class="pl-note" x="' + f1(pa[0] + 7) + '" y="' + f1(pa[1] + pw - 8) + '">' + esc((printer ? printer.label + ' plate' : 'Print plate') + ' · ' + n1(S.plate) + ' mm') + '</text>');
+      // modules, the selected one on top
+      var order = A.modules.filter(function (M) { return M.id !== sel; }).concat(A.modules.filter(function (M) { return M.id === sel; }));
+      var dragging = gesture && (gesture.type === 'move' || gesture.type === 'resize') ? gesture.id : null;
+      order.forEach(function (M) {
+        var a = toScreen(M.x, M.y), b = toScreen(M.x + M.w, M.y + M.d), x0 = a[0], yF = a[1], x1 = b[0], yB = b[1], w = x1 - x0, hgt = yF - yB;
+        var cls = 'pl-mod' + (M.warnings.indexOf('overlap') >= 0 ? ' bad' : '') + (flagged.indexOf(M.id) >= 0 ? ' flag' : '') + (M.id === sel ? ' sel' : '') +
+          (M.id === dragging ? ' drag' : '') + (draft && draft.invalid && M.id === dragging ? ' invalid' : '');
+        var tint = ui.colorEach ? ' style="fill:' + colorOf(M.id) + ';fill-opacity:0.42"' : '';
+        out.push('<path class="' + cls + '" data-id="' + esc(M.id) + '"' + tint + ' d="' + rectPath(x0, yB, x1, yF, { fl: M.corners.fl * k, fr: M.corners.fr * k, br: M.corners.br * k, bl: M.corners.bl * k }) + '"/>');
+        // which way it faces: cabinets and stands, and anything whose front is lower than its back
+        var T = C.TYPES[M.type], lf = M.local.front.profile, lb = M.local.back.profile;
+        if ((T && T.directional) || (lf && lb && lf[0].h0 < lb[0].h0 - 0.5)) {
+          var side = L.globalSideOf(M, 'front'), mx = (x0 + x1) / 2, my = (yF + yB) / 2, q = 5, len;
+          if (side === 'front' || side === 'back') {
+            var yy = side === 'front' ? yF - q : yB + q, dir = side === 'front' ? 1 : -1; len = Math.max(0, w * 0.5 - 8);
+            out.push('<path class="pl-front" d="M' + f1(mx - len) + ' ' + f1(yy) + 'H' + f1(mx + len) + '"/>');
+            if (hgt > 34 && w > 30) out.push('<path class="pl-arrow" d="M' + f1(mx - 6) + ' ' + f1(yy - dir * 12) + 'L' + f1(mx + 6) + ' ' + f1(yy - dir * 12) + 'L' + f1(mx) + ' ' + f1(yy - dir * 4.5) + 'Z"/>');
+          } else {
+            var xx = side === 'left' ? x0 + q : x1 - q, dr = side === 'left' ? -1 : 1; len = Math.max(0, hgt * 0.5 - 8);
+            out.push('<path class="pl-front" d="M' + f1(xx) + ' ' + f1(my - len) + 'V' + f1(my + len) + '"/>');
+            if (w > 34 && hgt > 30) out.push('<path class="pl-arrow" d="M' + f1(xx - dr * 12) + ' ' + f1(my - 6) + 'L' + f1(xx - dr * 12) + ' ' + f1(my + 6) + 'L' + f1(xx - dr * 4.5) + ' ' + f1(my) + 'Z"/>');
+          }
+        }
+        // name and size, turned to run up a narrow module
+        var name = fitText(M.name, FONT_NAME, w - 12), up = false;
+        if (name !== M.name && hgt > w * 1.3) { var alt = fitText(M.name, FONT_NAME, hgt - 12); if (alt.length > name.length) { name = alt; up = true; } }
+        var room = up ? w : hgt, along = up ? hgt : w, size = room >= 40 && textWidth(sizeText(M), FONT_SIZE) <= along - 10 ? sizeText(M) : '';
+        if (name && room >= 20) {
+          var cx = (x0 + x1) / 2, cy = (yF + yB) / 2, tr = up ? ' transform="rotate(-90 ' + f1(cx) + ' ' + f1(cy) + ')"' : '';
+          out.push('<g' + tr + '><text class="pl-name" x="' + f1(cx) + '" y="' + f1(cy + (size ? -2 : 4)) + '">' + esc(name) + '</text>' +
+            (size ? '<text class="pl-size" x="' + f1(cx) + '" y="' + f1(cy + 12) + '">' + esc(size) + '</text>' : '') + '</g>');
+        }
+      });
+      // joints: dovetails where they will be cut, a dotted line for a glued seam, amber where nothing holds
+      A.joints.forEach(function (J) {
+        var ma = A.byId[J.a], mb = A.byId[J.b];
+        if (!ma || !mb || L.overlapArea(ma, mb) > 0) return;
+        var inset = Math.min(4 / k, J.length / 4), p0 = J.axis === 'x' ? toScreen(J.at, J.from + inset) : toScreen(J.from + inset, J.at), p1 = J.axis === 'x' ? toScreen(J.at, J.to - inset) : toScreen(J.to - inset, J.at);
+        var line = 'd="M' + f1(p0[0]) + ' ' + f1(p0[1]) + 'L' + f1(p1[0]) + ' ' + f1(p1[1]) + '"';
+        if (J.blocked) out.push('<path class="pl-blocked" ' + line + '/>');
+        else if (J.tabs.length) J.tabs.forEach(function (t) {
+          out.push('<path class="pl-tab" d="M' + L.tabPolygon(S, J, t.c).map(function (q) { var z = toScreen(q[0], q[1]); return f1(z[0]) + ' ' + f1(z[1]); }).join('L') + 'Z"/>');
+        });
+        else out.push('<path class="' + (S.dovetail ? 'pl-nojoint' : 'pl-glue') + '" ' + line + '/>');
+      });
+      // overlaps
+      for (i = 0; i < A.modules.length; i++) for (var j = i + 1; j < A.modules.length; j++) {
+        var m1 = A.modules[i], m2 = A.modules[j];
+        if (L.overlapArea(m1, m2) <= 0) continue;
+        var oa = toScreen(Math.max(m1.x, m2.x), Math.min(m1.y + m1.d, m2.y + m2.d)), ob = toScreen(Math.min(m1.x + m1.w, m2.x + m2.w), Math.max(m1.y, m2.y));
+        out.push('<rect class="pl-overlap" x="' + f1(oa[0]) + '" y="' + f1(oa[1]) + '" width="' + f1(ob[0] - oa[0]) + '" height="' + f1(ob[1] - oa[1]) + '"/>');
+      }
+      // a drag in progress: where the module will settle, and the edges it snapped to
+      if (draft && draft.ghost) {
+        var ga = toScreen(draft.ghost.x, draft.ghost.y + draft.ghost.d);
+        out.push('<rect class="pl-ghost" x="' + f1(ga[0]) + '" y="' + f1(ga[1]) + '" width="' + f1(draft.ghost.w * k) + '" height="' + f1(draft.ghost.d * k) + '" rx="5"/>');
+      }
+      if (draft && draft.guides) draft.guides.forEach(function (gd) {
+        var g0 = gd.axis === 'x' ? toScreen(gd.at, gd.from) : toScreen(gd.from, gd.at), g1 = gd.axis === 'x' ? toScreen(gd.at, gd.to) : toScreen(gd.to, gd.at);
+        out.push('<path class="pl-guide" d="M' + f1(g0[0]) + ' ' + f1(g0[1]) + 'L' + f1(g1[0]) + ' ' + f1(g1[1]) + '"/>');
+      });
+      // handles on the selected module's four sides
+      if (focus && !(gesture && gesture.type === 'move')) {
+        handlePoints(focus).forEach(function (hp) {
+          var horiz = hp.edge === 'front' || hp.edge === 'back', hw = horiz ? 15 : 5.5, hh = horiz ? 5.5 : 15, on = gesture && gesture.type === 'resize' && gesture.edge === hp.edge;
+          out.push('<rect class="pl-handle' + (on ? ' on' : '') + '" data-edge="' + hp.edge + '" x="' + f1(hp.x - hw) + '" y="' + f1(hp.y - hh) + '" width="' + (hw * 2) + '" height="' + (hh * 2) + '" rx="5.5"/>');
+          if (on) {
+            var label = n1(horiz ? focus.d : focus.w) + ' mm', lw = textWidth(label, '500 11px "DM Mono", monospace') + 14, lx = hp.x + hp.nx * (lw / 2 + 16), ly = hp.y + hp.ny * 26;
+            out.push('<rect class="pl-dimbox" x="' + f1(lx - lw / 2) + '" y="' + f1(ly - 10) + '" width="' + f1(lw) + '" height="20" rx="6"/><text class="pl-dim" x="' + f1(lx) + '" y="' + f1(ly + 4) + '">' + esc(label) + '</text>');
+          }
+        });
+      }
+      planEl.innerHTML = out.join('');
+    }
+    function handlePoints(M) {
+      var a = toScreen(M.x, M.y), b = toScreen(M.x + M.w, M.y + M.d), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      return [{ edge: 'left', x: a[0], y: my, nx: -1, ny: 0 }, { edge: 'right', x: b[0], y: my, nx: 1, ny: 0 },
+        { edge: 'front', x: mx, y: a[1], nx: 0, ny: 1 }, { edge: 'back', x: mx, y: b[1], nx: 0, ny: -1 }];
+    }
+    // which handle of the selected module is under a point: a thumb-sized zone round each, reaching outwards
+    function handleAt(px, py) {
+      var M = sel && cur().byId[sel], best = null;
+      if (!M) return null;
+      var a = toScreen(M.x, M.y), b = toScreen(M.x + M.w, M.y + M.d), halfW = clamp((b[0] - a[0]) / 2 - 4, 16, 26), halfH = clamp((a[1] - b[1]) / 2 - 4, 16, 26);
+      handlePoints(M).forEach(function (hp) {
+        var dx = px - hp.x, dy = py - hp.y, across = dx * hp.nx + dy * hp.ny, along = hp.nx ? dy : dx, half = hp.nx ? halfH : halfW;
+        var inside = Math.min(12, (hp.nx ? b[0] - a[0] : a[1] - b[1]) * 0.28);
+        if (across < -inside || across > 30 || Math.abs(along) > half) return;
+        var dist = Math.hypot(dx, dy);
+        if (!best || dist < best.dist) best = { edge: hp.edge, dist: dist };
+      });
+      return best ? best.edge : null;
+    }
+    function moduleAt(px, py) {
+      var A = cur(), q = toPlan(px, py), hit = null;
+      A.modules.forEach(function (M) { if (q[0] >= M.x && q[0] <= M.x + M.w && q[1] >= M.y && q[1] <= M.y + M.d && (!hit || M.id === sel)) hit = M; });
+      return hit;
+    }
+    function localPt(e) { var r = planEl.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function cancelGesture() {
+      if (gesture && (gesture.type === 'move' || gesture.type === 'resize') && draft) { draft = null; syncAll(); }
+      gesture = null; planEl.classList.remove('moving'); planDirty = true;
+    }
+    function snapTol(grid) { return clamp(11 / plan.k, grid * 0.6, 14); }
+    function withModule(base, id, patch) {
+      var d = C.clone(base);
+      d.modules.forEach(function (m) { if (m.id === id) for (var key in patch) m[key] = patch[key]; });
+      return d;
+    }
+    function setDraft(d, extra) {
+      draft = extra || {};
+      draft.design = d; draft.analysis = L.analyze(d);
+      syncHUD(); syncModuleTab(); planDirty = true;
+    }
+    planEl.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (isTextField(document.activeElement)) document.activeElement.blur();
+      try { planEl.setPointerCapture(e.pointerId); } catch (err) {}
+      var p = localPt(e);
+      if (!ptrs[e.pointerId]) nptrs++;
+      ptrs[e.pointerId] = p;
+      e.preventDefault();
+      if (nptrs === 2) {               // a second finger: whatever was going on becomes a pinch
+        cancelGesture();
+        var ids = Object.keys(ptrs), a = ptrs[ids[0]], b = ptrs[ids[1]], mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        gesture = { type: 'pinch', d0: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), k0: plan.k, anchor: toPlan(mid.x, mid.y) };
+        plan.tween = null;
+        return;
+      }
+      if (nptrs > 2) return;
+      var edge = handleAt(p.x, p.y), M = edge ? null : moduleAt(p.x, p.y);
+      gesture = { type: 'wait', kind: edge ? 'resize' : M ? 'move' : 'pan', edge: edge, id: edge ? sel : M ? M.id : null, x0: p.x, y0: p.y, pid: e.pointerId,
+        slop: e.pointerType === 'mouse' ? 4 : 8, t0: performance.now() };
+    });
+    planEl.addEventListener('pointermove', function (e) {
+      if (!ptrs[e.pointerId]) return;
+      var p = localPt(e), s = viewSize(), g = gesture;
+      ptrs[e.pointerId] = p;
+      if (!g) return;
+      if (g.type === 'pinch') {
+        var ids = Object.keys(ptrs);
+        if (ids.length < 2) return;
+        var a = ptrs[ids[0]], b = ptrs[ids[1]], mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        plan.k = clamp(g.k0 * Math.hypot(a.x - b.x, a.y - b.y) / g.d0, 0.25, 8);
+        plan.cx = g.anchor[0] - (mid.x - s.w / 2) / plan.k; plan.cy = g.anchor[1] + (mid.y - s.h / 2) / plan.k;
+        plan.auto = false; planDirty = true;
+        return;
+      }
+      if (e.pointerId !== g.pid || g.type === 'done') return;
+      if (g.type === 'wait') {
+        if (Math.hypot(p.x - g.x0, p.y - g.y0) < g.slop) return;
+        var q0 = toPlan(g.x0, g.y0), base = design(), m0 = null;
+        base.modules.forEach(function (m) { if (m.id === g.id) m0 = m; });
+        g.type = g.kind; g.base = base; plan.tween = null;
+        $('hint').classList.add('gone');
+        if (g.type === 'pan') { g.cx0 = plan.cx; g.cy0 = plan.cy; }
+        else if (!m0) { gesture = { type: 'done' }; return; }
+        else if (g.type === 'move') { g.off = [q0[0] - m0.x, q0[1] - m0.y]; g.m = m0; if (sel !== g.id) select(g.id); }
+        else { var at = g.edge === 'left' ? m0.x : g.edge === 'right' ? m0.x + m0.w : g.edge === 'front' ? m0.y : m0.y + m0.d; g.grab = (g.edge === 'left' || g.edge === 'right' ? q0[0] : q0[1]) - at; }
+        planEl.classList.add('moving');
+      }
+      var q = toPlan(p.x, p.y), grid = cur().settings.grid;
+      if (g.type === 'pan') { plan.cx = g.cx0 - (p.x - g.x0) / plan.k; plan.cy = g.cy0 + (p.y - g.y0) / plan.k; plan.auto = false; planDirty = true; }
+      else if (g.type === 'move') {
+        var sn = E.snapMove(g.base, g.id, q[0] - g.off[0], q[1] - g.off[1], { tol: snapTol(grid) }), rect = { x: sn.x, y: sn.y, w: g.m.w, d: g.m.d };
+        var free = E.isFree(g.base.modules, rect, g.id), spot = free ? null : E.freeSpot(g.base.modules, rect, g.id);
+        g.pos = sn;
+        setDraft(withModule(g.base, g.id, { x: sn.x, y: sn.y }), { invalid: !free, ghost: spot ? { x: spot.x, y: spot.y, w: rect.w, d: rect.d } : null, guides: free ? sn.guides : [] });
+      } else if (g.type === 'resize') {
+        var coord = (g.edge === 'left' || g.edge === 'right' ? q[0] : q[1]) - g.grab, r = E.resize(g.base, g.id, g.edge, coord, { tol: snapTol(grid) * 0.6 });
+        g.result = r.ok ? r.design : null;
+        setDraft(r.ok ? r.design : g.base, {});
+      }
+    });
+    function planUp(e) {
+      if (!ptrs[e.pointerId]) return;
+      delete ptrs[e.pointerId]; nptrs = Math.max(0, nptrs - 1);
+      try { planEl.releasePointerCapture(e.pointerId); } catch (err) {}
+      var g = gesture;
+      if (!g) return;
+      if (g.type === 'pinch') { gesture = nptrs ? { type: 'done' } : null; return; }
+      if (g.type === 'done') { if (!nptrs) gesture = null; return; }
+      if (e.pointerId !== g.pid) return;
+      gesture = null; planEl.classList.remove('moving');
+      if (e.type === 'pointercancel') { if (draft) { draft = null; syncAll(); } planDirty = true; return; }
+      if (g.type === 'wait') {                 // a tap
+        if (g.kind === 'move') select(g.id, { tab: true }); else if (g.kind === 'pan') select(null);
+      } else if (g.type === 'move') {
+        draft = null;
+        var r = g.pos ? E.move(g.base, g.id, g.pos.x, g.pos.y, { snap: false }) : { ok: false };
+        if (r.ok) { commit(r.design); if (r.settled) toast('Moved to the nearest free spot.'); } else syncAll();
+        planFollow();
+      } else if (g.type === 'resize') {
+        draft = null;
+        if (g.result) commit(g.result); else syncAll();
+        planFollow();
+      }
+      planDirty = true;
+    }
+    planEl.addEventListener('pointerup', planUp);
+    planEl.addEventListener('pointercancel', planUp);
+    planEl.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var p = localPt(e), s = viewSize(), anchor = toPlan(p.x, p.y), dy = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+      plan.k = clamp(plan.k * Math.exp(-dy * (e.ctrlKey ? 0.012 : 0.0018)), 0.25, 8);
+      plan.cx = anchor[0] - (p.x - s.w / 2) / plan.k; plan.cy = anchor[1] + (p.y - s.h / 2) / plan.k;
+      plan.auto = false; plan.tween = null; planDirty = true;
+    }, { passive: false });
+    function tickPlan(now) {
+      if (plan.tween) {
+        var t = plan.tween, u = Math.min(1, (now - t.start) / t.ms), e = 1 - Math.pow(1 - u, 3);
+        plan.k = t.from.k + (t.to.k - t.from.k) * e; plan.cx = t.from.cx + (t.to.cx - t.from.cx) * e; plan.cy = t.from.cy + (t.to.cy - t.from.cy) * e;
+        if (u >= 1) plan.tween = null;
+        planDirty = true;
+      }
+      if (ui.view !== 'plan' || !planDirty) return;
+      planDirty = false;
+      renderPlan();
+    }
