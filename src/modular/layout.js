@@ -208,7 +208,7 @@
       }
       var defs = { fl: [['front', 'from'], ['left', 'from']], fr: [['front', 'to'], ['right', 'from']], br: [['right', 'to'], ['back', 'to']], bl: [['back', 'from'], ['left', 'to']] };
       CORNERS.forEach(function (cn, ci) {
-        var r = Math.min(S.cornerR, Math.min(M.w, M.d) / 2);
+        var r = Math.min(M.params.round > 0 ? M.params.round : S.cornerR, Math.min(M.w, M.d) / 2);
         defs[cn].forEach(function (q) {
           if (M.sides[q[0]].open) r = Math.min(r, 1.5);
           var dist = near(q[0], q[1]);

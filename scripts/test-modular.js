@@ -75,7 +75,7 @@ function randomModule(id) {
   return { id, type, name: T.label + ' ' + id, x: 0, y: 0, w: rot % 2 ? dL : wL, d: rot % 2 ? wL : dL, h, rot, params: randomParams(type) };
 }
 function randomSettings() {
-  const s = { surface: pick(['ribbed', 'ribbed', 'smooth']), ribPitch: step(3, 9, 0.5), cornerR: pick([0, 1, 3, 8, 8, 8, 12, 20]), wall: step(1.6, 5, 0.2), floor: step(1.2, 5, 0.2),
+  const s = { surface: pick(['ribbed', 'ribbed', 'smooth']), ribPitch: step(3, 9, 0.5), cornerR: pick([0, 1, 3, 8, 8, 8, 12, 20, 35, 60]), wall: step(1.6, 5, 0.2), floor: step(1.2, 5, 0.2),
     joint: pick(['dovetail', 'dovetail', 'dovetail', 'flat']), gap: pick([0, 0.05, 0.1, 0.15, 0.15, 0.2, 0.3, 0.5]), plate: pick([180, 256]), plateH: pick([180, 256]) };
   if (rnd() < 0.5) return s;                    // half the designs keep the default profile and finishing radii
   C.SETTINGS.forEach(d => { if (!d.label && rnd() < 0.5) s[d.key] = Math.round((d.min + (d.max - d.min) * rnd()) * 100) / 100; });
