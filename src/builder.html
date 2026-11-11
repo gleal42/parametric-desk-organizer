@@ -384,6 +384,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); heigh
 
 /* ---------- phones: bottom sheet ---------- */
 @media (max-width: 760px) {
+  .hint { display: none; }      /* the sheet right below opens with the same sentence; here it ran across the model */
   .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .panel {
     border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-top: -14px; position: relative; z-index: 3;
@@ -751,7 +752,12 @@ window['__MANIFOLD_' + 'WASM_B64__'] = "__MANIFOLD_WASM_B64__";
         ? n1(A.size.w) + ' × ' + n1(A.size.d) + ' × ' + n1(A.size.h) + ' mm · ' + parts.length + (parts.length === 1 ? ' part' : ' parts')
         : 'No modules yet';
       var bad = parts.filter(function (p) { return !p.fits; }), errs = warnings.filter(function (w) { return w.level === 'error'; }), text, cls = '';
-      if (errs.length) { cls = ' err'; text = errs.length === 1 ? 'Two modules overlap' : errs.length + ' overlaps to fix'; }
+      if (errs.length) {
+        var laps = errs.filter(function (w) { return w.code === 'overlap'; }).length;
+        cls = ' err';
+        text = laps === errs.length ? (laps === 1 ? 'Two modules overlap' : laps + ' overlaps to fix')
+          : errs.length === 1 ? (errs[0].code === 'geometry' ? 'A module could not be built' : '1 problem to fix') : errs.length + ' problems to fix';
+      }
       else if (!parts.length) { cls = ' idle'; text = 'Nothing to print yet'; }
       else if (bad.length) { cls = ' warn'; text = (bad.length === 1 ? '1 part is' : bad.length + ' parts are') + ' too big for ' + plateName(S); }
       else text = (parts.length === 1 ? 'The part fits ' : 'All ' + parts.length + ' parts fit ') + plateName(S);
@@ -903,9 +909,39 @@ window['__MANIFOLD_' + 'WASM_B64__'] = "__MANIFOLD_WASM_B64__";
       var g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(part.positions, 3));
       g.setIndex(new THREE.BufferAttribute(part.indices, 1));
-      var shaded = THREE.BufferGeometryUtils.toCreasedNormals(g, Math.PI * 40 / 180);
+      var shaded = creasedNormals(g, Math.PI * 40 / 180);
       g.dispose();
       return shaded;
+    }
+    // Smooth normals with creases, like BufferGeometryUtils.toCreasedNormals, but every face counts by its area.
+    // Unweighted, a big flat wall borrows the tilt of the small facets of the rounded corners, rim and cove it
+    // touches, a little differently at each of its corners, and its two triangles show as a diagonal fold.
+    function creasedNormals(g, crease) {
+      var pos = g.attributes.position.array, ix = g.index.array, nt = ix.length / 3, nv = pos.length / 3, cosC = Math.cos(crease);
+      var fn = new Float32Array(nt * 3), un = new Float32Array(nt * 3), count = new Uint32Array(nv + 1), t, k, q;
+      for (t = 0; t < nt; t++) {
+        var a = ix[3 * t] * 3, b = ix[3 * t + 1] * 3, c = ix[3 * t + 2] * 3;
+        var e1x = pos[b] - pos[a], e1y = pos[b + 1] - pos[a + 1], e1z = pos[b + 2] - pos[a + 2], e2x = pos[c] - pos[a], e2y = pos[c + 1] - pos[a + 1], e2z = pos[c + 2] - pos[a + 2];
+        var nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x, l = Math.hypot(nx, ny, nz) || 1;
+        fn[3 * t] = nx; fn[3 * t + 1] = ny; fn[3 * t + 2] = nz; un[3 * t] = nx / l; un[3 * t + 1] = ny / l; un[3 * t + 2] = nz / l;
+        count[ix[3 * t] + 1]++; count[ix[3 * t + 1] + 1]++; count[ix[3 * t + 2] + 1]++;
+      }
+      for (k = 0; k < nv; k++) count[k + 1] += count[k];              // faces round each vertex: start offsets
+      var fill = count.slice(0, nv), faces = new Uint32Array(nt * 3);
+      for (t = 0; t < nt; t++) for (k = 0; k < 3; k++) faces[fill[ix[3 * t + k]]++] = t;
+      var P = new Float32Array(nt * 9), N = new Float32Array(nt * 9);
+      for (t = 0; t < nt; t++) for (k = 0; k < 3; k++) {
+        var v = ix[3 * t + k], o = 9 * t + 3 * k, sx = 0, sy = 0, sz = 0;
+        for (q = count[v]; q < count[v + 1]; q++) {
+          var f = faces[q] * 3;
+          if (f === 3 * t || un[3 * t] * un[f] + un[3 * t + 1] * un[f + 1] + un[3 * t + 2] * un[f + 2] > cosC) { sx += fn[f]; sy += fn[f + 1]; sz += fn[f + 2]; }
+        }
+        var sl = Math.hypot(sx, sy, sz) || 1;
+        P[o] = pos[3 * v]; P[o + 1] = pos[3 * v + 1]; P[o + 2] = pos[3 * v + 2]; N[o] = sx / sl; N[o + 1] = sy / sl; N[o + 2] = sz / sl;
+      }
+      var out = new THREE.BufferGeometry();
+      out.setAttribute('position', new THREE.BufferAttribute(P, 3)); out.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+      return out;
     }
     // Bring the scene in line with the last build. A part whose key did not change keeps its geometry.
     function syncScene() {
@@ -916,7 +952,9 @@ window['__MANIFOLD_' + 'WASM_B64__'] = "__MANIFOLD_WASM_B64__";
         var pv = G.views[part.id];
         if (!pv) {
           pv = G.views[part.id] = { mesh: new THREE.Mesh(undefined, matFor(part.moduleId)), key: null, cur: null, tgt: [0, 0, 0] };
-          pv.mesh.castShadow = true; pv.mesh.receiveShadow = true; G.world.add(pv.mesh);
+          // Parts shade the desk but not each other: the shadow of a cup's own rim ran as a hard diagonal across its
+          // inside walls and read as a fault in the model.
+          pv.mesh.castShadow = true; pv.mesh.receiveShadow = false; G.world.add(pv.mesh);
         }
         if (pv.key !== part.key) {
           var old = pv.mesh.geometry;
@@ -1670,7 +1708,11 @@ window['__MANIFOLD_' + 'WASM_B64__'] = "__MANIFOLD_WASM_B64__";
           var c = schemaControl(d, 'p-', function () { var m = cur().byId[id]; return { value: m ? m.params[d.key] : d.default, range: m && m.ranges ? m.ranges[d.key] : null }; },
             dragEdit(function (base, v) { return E.setParam(base, id, d.key, v); }));
           pSec.appendChild(c.el);
-          ctls.push({ update: function (A, m) { c.el.hidden = !shown(d.showIf, m.params); if (!c.el.hidden) c.update(); } });
+          ctls.push({ update: function (A, m) {
+            // a single pocket has no dividers to set the height of
+            c.el.hidden = !shown(d.showIf, m.params) || (m.type === 'bin' && d.key === 'dividerH' && m.params.cols === 1 && m.params.rows === 1);
+            if (!c.el.hidden) c.update();
+          } });
         });
         tpModule.appendChild(pSec);
       }

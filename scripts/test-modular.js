@@ -327,7 +327,8 @@ function awkwardDesigns() {
     files.forEach((f, i) => {
       if (!/\.stl$/.test(f.name)) return;
       const dv = new DataView(f.data.buffer, f.data.byteOffset, f.data.byteLength), n = dv.getUint32(80, true), p = R.parts[i];
-      if (n !== p.triangles || f.data.length !== 84 + 50 * n) fail('export', f.name + ' has ' + n + ' triangles, part has ' + p.triangles);
+      // the STL leaves out triangles whose corners land on the same 32-bit position (a handful per part at most)
+      if (n > p.triangles || n < p.triangles - 64 || f.data.length !== 84 + 50 * n) fail('export', f.name + ' has ' + n + ' triangles, part has ' + p.triangles);
       let zmin = Infinity, zmax = -Infinity, vol = 0;
       for (let t = 0; t < n; t++) {
         const o = 84 + 50 * t + 12, v = [];

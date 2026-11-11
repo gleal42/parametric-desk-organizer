@@ -79,7 +79,8 @@ def boot_phone():
         check(st['gl'], 'WebGL view is up')
         check(any(p['role'] == 'drawer' for p in st['parts']) or st['stub'], 'drawer parts from the real kernel')
         check(st['tab'] == 'module' and st['sel'] is None, 'starts on the Module tab with nothing selected')
-        check(s.page.is_visible('#hint'), 'first-run hint visible')
+        # on a phone the stage hint is off (it ran across the model); the sheet's first line says the same
+        check(not s.page.is_visible('#hint') and 'Tap a module to edit it' in s.page.inner_text('.panel'), 'phone: no stage hint, the sheet explains')
         check('All 7 parts fit' in s.page.inner_text('#fitText') or st['stub'], 'fit chip: ' + s.page.inner_text('#fitText'))
         # touch targets of the stage and panel buttons are at least 40 px
         def small_targets():

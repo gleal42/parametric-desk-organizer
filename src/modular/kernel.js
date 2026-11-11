@@ -38,12 +38,16 @@
 
   /* ---------- STL and ZIP (same as the classic organizer) ---------- */
   function stlBytes(p, ix) {
-    var nt = ix.length / 3, buf = new ArrayBuffer(84 + nt * 50), dv = new DataView(buf), o = 84, t, k;
+    var nt = ix.length / 3, buf = new ArrayBuffer(84 + nt * 50), dv = new DataView(buf), o = 84, t, k, kept = 0;
     var head = 'Modular desk organizer (mm)';
+    function same(i, j) { return p[i] === p[j] && p[i + 1] === p[j + 1] && p[i + 2] === p[j + 2]; }
     for (t = 0; t < head.length; t++) dv.setUint8(t, head.charCodeAt(t));
-    dv.setUint32(80, nt, true);
     for (t = 0; t < nt; t++) {
       var a = ix[3 * t] * 3, b = ix[3 * t + 1] * 3, c = ix[3 * t + 2] * 3, v = [a, b, c];
+      // Two corners on the same spot (distinct vertices that round to the same 32-bit position): an STL only stores
+      // positions, so such a triangle is a zero-length edge to whoever reads it. Left out, the mesh stays closed.
+      if (same(a, b) || same(b, c) || same(a, c)) continue;
+      kept++;
       var e1x = p[b] - p[a], e1y = p[b + 1] - p[a + 1], e1z = p[b + 2] - p[a + 2];
       var e2x = p[c] - p[a], e2y = p[c + 1] - p[a + 1], e2z = p[c + 2] - p[a + 2];
       var nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x, l = Math.hypot(nx, ny, nz) || 1;
@@ -51,7 +55,8 @@
       for (k = 0; k < 3; k++) { dv.setFloat32(o, p[v[k]], true); dv.setFloat32(o + 4, p[v[k] + 1], true); dv.setFloat32(o + 8, p[v[k] + 2], true); o += 12; }
       dv.setUint16(o, 0, true); o += 2;
     }
-    return new Uint8Array(buf);
+    dv.setUint32(80, kept, true);
+    return new Uint8Array(kept === nt ? buf : buf.slice(0, 84 + kept * 50));
   }
   var CRC = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
   function crc32(d) { var c = 0xFFFFFFFF; for (var i = 0; i < d.length; i++) c = CRC[(c ^ d[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
@@ -544,17 +549,20 @@
     }
 
     /* ----- cabinet drawers (local frame) ----- */
+    // arc segments of a cabinet's rounded back corners: the bay, the drawer and the drawer's inside all use the same
+    // number, so the clearance and the drawer wall stay even round the corner
+    function backSeg(backR) { return clamp(Math.ceil(PI / 2 * Math.max(backR.left, backR.right) / 1.5), 4, 24); }
     function drawerSolid(ar, S, dr, pull, ch, backR) {
       var x0 = dr.x0, x1 = dr.x1, y0 = dr.y0, y1 = dr.y1, z0 = dr.z0, z1 = dr.z1, t = S.drawerWall, W = x1 - x0, D = y1 - y0, H = z1 - z0;
       // back corners follow the bay's (that radius less the clearance, so the gap stays the same all round)
       var rbr = Math.max(1.5, backR.right - S.drawerGap), rbl = Math.max(1.5, backR.left - S.drawerGap), lim = Math.min(W, D) / 2 - 0.01;
-      var c = Math.min(ch, 0.5, H / 6), rad = [Math.min(0.6, W / 4, D / 4), Math.min(0.6, W / 4, D / 4), Math.min(rbr, lim), Math.min(rbl, lim)], mb = builder(), body, cut = [];
-      if (c > 0.01) mb.loft([{ pts: rrect(x0, y0, x1, y1, rad, -c, 4), z: z0 }, { pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z0 + c }, { pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z1 }]);
-      else mb.loft([{ pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z0 }, { pts: rrect(x0, y0, x1, y1, rad, 0, 4), z: z1 }]);
+      var sg = backSeg(backR), c = Math.min(ch, 0.5, H / 6), rad = [Math.min(0.6, W / 4, D / 4), Math.min(0.6, W / 4, D / 4), Math.min(rbr, lim), Math.min(rbl, lim)], mb = builder(), body, cut = [];
+      if (c > 0.01) mb.loft([{ pts: rrect(x0, y0, x1, y1, rad, -c, sg), z: z0 }, { pts: rrect(x0, y0, x1, y1, rad, 0, sg), z: z0 + c }, { pts: rrect(x0, y0, x1, y1, rad, 0, sg), z: z1 }]);
+      else mb.loft([{ pts: rrect(x0, y0, x1, y1, rad, 0, sg), z: z0 }, { pts: rrect(x0, y0, x1, y1, rad, 0, sg), z: z1 }]);
       body = solid(ar, mb);
       if (W - 2 * t > 3 && D - 2 * t > 3 && H - t > 2) {
         var mi = builder(), ri = Math.min(1.2, (W - 2 * t) / 4, (D - 2 * t) / 4), li = Math.min(W - 2 * t, D - 2 * t) / 2 - 0.05;
-        mi.loft(pocketRings({ rect: [x0 + t, y0 + t, x1 - t, y1 - t], rad: [ri, ri, Math.min(li, Math.max(ri, rad[2] - t)), Math.min(li, Math.max(ri, rad[3] - t))], floor: z0 + t, cove: Math.min(1.5, (H - t) / 3, (W - 2 * t) / 6, (D - 2 * t) / 6), rim: 0, top: null, above: z1 + 1 }));
+        mi.loft(pocketRings({ rect: [x0 + t, y0 + t, x1 - t, y1 - t], rad: [ri, ri, Math.min(li, Math.max(ri, rad[2] - t)), Math.min(li, Math.max(ri, rad[3] - t))], floor: z0 + t, cove: Math.min(1.5, (H - t) / 3, (W - 2 * t) / 6, (D - 2 * t) / 6), rim: 0, top: null, above: z1 + 1, seg: sg }));
         cut.push(solid(ar, mi));
       }
       var cx = (x0 + x1) / 2;
@@ -616,7 +624,7 @@
           }
         } else if (M.type === 'cabinet') {
           cut = cut.concat(placed(g.bays.map(function (b) {      // open at the front, rounded at the back like the shell
-            var ring = rrect(b.x0, -12, b.x1, b.y1, [0, 0, g.backR.right, g.backR.left], 0, 8), mb = builder();
+            var ring = rrect(b.x0, -12, b.x1, b.y1, [0, 0, g.backR.right, g.backR.left], 0, backSeg(g.backR)), mb = builder();
             return solid(ar, mb.loft([{ pts: ring, z: b.z0 }, { pts: ring, z: b.z1 }]));
           })));
           bridge = g.span;
