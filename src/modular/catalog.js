@@ -35,7 +35,7 @@
       options: [{ value: 'ribbed', label: 'Ribbed' }, { value: 'smooth', label: 'Smooth' }] },
     { key: 'ribPitch', label: 'Rib width', type: 'range', group: 'style', min: 3, max: 9, step: 0.5, unit: 'mm', default: 5, showIf: { surface: 'ribbed' } },
     { key: 'cornerR', label: 'Corner rounding', type: 'range', group: 'style', min: 0, max: 60, step: 1, unit: 'mm', default: 8,
-      hint: 'Each module can also set its own rounding. A corner is never rounder than half the module, and stays square where a neighbour touches it.' },
+      hint: 'A module can also use its own rounding. A corner is never rounder than half the module, and stays square where a neighbour touches it.' },
     { key: 'wall', label: 'Wall', type: 'range', group: 'style', min: 1.6, max: 5, step: 0.2, unit: 'mm', default: 2.4 },
     { key: 'floor', label: 'Floor', type: 'range', group: 'style', min: 1.2, max: 5, step: 0.2, unit: 'mm', default: 2.4 },
     { key: 'joint', label: 'Joints', type: 'select', group: 'print', default: 'dovetail',
@@ -337,10 +337,13 @@
     }
   };
 
-  /* Every type also takes `round`: this module's own corner rounding (0 = follow the Style setting). */
-  var ROUND = { key: 'round', label: 'Corner rounding', type: 'range', min: 1, max: 80, step: 1, unit: 'mm', default: 0, auto: { label: 'As style' },
-    hint: 'Only free corners are rounded. Fully round needs half the shorter side.' };
-  Object.keys(TYPES).forEach(function (k) { TYPES[k].params = TYPES[k].params.concat([ROUND]); });
+  /* Every type also takes its own corner rounding: `corners` 'own' uses `round` instead of the Style setting. */
+  var ROUND = [
+    { key: 'corners', label: 'Corners', type: 'select', default: 'style', options: [{ value: 'style', label: 'As style' }, { value: 'own', label: 'Own rounding' }] },
+    { key: 'round', label: 'Corner rounding', type: 'range', min: 0, max: 80, step: 1, unit: 'mm', default: 8, showIf: { corners: 'own' },
+      hint: 'The far end is fully round. Corners stay square where a neighbour touches them.' }
+  ];
+  Object.keys(TYPES).forEach(function (k) { TYPES[k].params = TYPES[k].params.concat(ROUND); });
 
   /* ---------- palette presets: what "Add" offers ---------- */
   var PRESETS = [

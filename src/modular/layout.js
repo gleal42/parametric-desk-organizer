@@ -123,6 +123,8 @@
       };
       var res = T.resolve(M, S);
       M.params = res.params; M.ranges = res.ranges;
+      var half = Math.floor(Math.min(M.w, M.d) / 2);        // the slider's far end is a fully round module
+      M.ranges.round = { min: 0, max: half }; M.params.round = Math.min(M.params.round, half);
       M.local = T.sides(M, S);
       SIDES.forEach(function (side) {
         var g = sideGeom(M, side), lsn = localSideOf(M, side), info = M.local[lsn];
@@ -208,7 +210,7 @@
       }
       var defs = { fl: [['front', 'from'], ['left', 'from']], fr: [['front', 'to'], ['right', 'from']], br: [['right', 'to'], ['back', 'to']], bl: [['back', 'from'], ['left', 'to']] };
       CORNERS.forEach(function (cn, ci) {
-        var r = Math.min(M.params.round > 0 ? M.params.round : S.cornerR, Math.min(M.w, M.d) / 2);
+        var r = Math.min(M.params.corners === 'own' ? M.params.round : S.cornerR, Math.min(M.w, M.d) / 2);
         defs[cn].forEach(function (q) {
           if (M.sides[q[0]].open) r = Math.min(r, 1.5);
           var dist = near(q[0], q[1]);
