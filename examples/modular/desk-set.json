@@ -1,0 +1,104 @@
+{
+ "version": 1,
+ "name": "Desk set",
+ "settings": {
+  "surface": "ribbed",
+  "ribPitch": 5,
+  "cornerR": 8,
+  "wall": 2.4,
+  "floor": 2.4,
+  "joint": "dovetail",
+  "gap": 0.15,
+  "plate": 180,
+  "plateH": 180,
+  "grid": 5,
+  "tabDepth": 3.2,
+  "tabNeck": 6,
+  "tabAngle": 14,
+  "tabChamfer": 0.4,
+  "tabSpacing": 45,
+  "tabMinH": 6,
+  "chamfer": 0.6,
+  "rimR": 1,
+  "coveR": 3,
+  "divider": 2,
+  "drawerGap": 0.4,
+  "drawerWall": 1.6,
+  "shelfT": 2
+ },
+ "modules": [
+  {
+   "id": "m1",
+   "type": "cabinet",
+   "preset": "drawers",
+   "name": "Drawers",
+   "x": 0,
+   "y": 0,
+   "w": 100,
+   "d": 100,
+   "h": 70,
+   "rot": 0,
+   "params": {
+    "bays": 2,
+    "drawers": true
+   }
+  },
+  {
+   "id": "m2",
+   "type": "bin",
+   "preset": "tray",
+   "name": "Tray",
+   "x": 100,
+   "y": 0,
+   "w": 100,
+   "d": 40,
+   "h": 25,
+   "rot": 0,
+   "params": {}
+  },
+  {
+   "id": "m3",
+   "type": "bin",
+   "preset": "pen-cup",
+   "name": "Pens",
+   "x": 100,
+   "y": 40,
+   "w": 50,
+   "d": 60,
+   "h": 95,
+   "rot": 0,
+   "params": {}
+  },
+  {
+   "id": "m4",
+   "type": "block",
+   "preset": "pen-block",
+   "name": "Pen block",
+   "x": 150,
+   "y": 40,
+   "w": 50,
+   "d": 60,
+   "h": 70,
+   "rot": 0,
+   "params": {
+    "hole": "round",
+    "size": 12,
+    "spacing": 3.6,
+    "frontH": 0
+   }
+  },
+  {
+   "id": "m5",
+   "type": "bin",
+   "preset": "notebook",
+   "name": "Notebooks",
+   "x": 0,
+   "y": 100,
+   "w": 200,
+   "d": 40,
+   "h": 100,
+   "rot": 0,
+   "params": {}
+  }
+ ]
+}
